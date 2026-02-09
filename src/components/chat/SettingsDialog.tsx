@@ -389,26 +389,33 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <Separator />
 
           {/* Language */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Globe className="w-5 h-5 text-primary" />
-              <div>
-                <Label className="text-sm font-semibold">{t("settings.language")}</Label>
-                <p className="text-xs text-muted-foreground">{t("settings.languageDesc")}</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe className="w-5 h-5 text-primary" />
+                <div>
+                  <Label className="text-sm font-semibold">{t("settings.language")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("settings.languageDesc")}</p>
+                </div>
               </div>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {language === "auto" && (
+              <p className="text-[11px] text-muted-foreground/70 text-end">
+                {t("settings.autoDetected")}: {LANGUAGES.find(l => l.value === getStoredLanguage())?.label || getStoredLanguage()}
+              </p>
+            )}
           </div>
         </div>
       </DialogContent>
