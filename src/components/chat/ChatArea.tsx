@@ -19,7 +19,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
-import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl } from "./SettingsDialog";
+import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
 
 interface Message {
   id: string;
@@ -88,6 +88,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [wallpaperId, setWallpaperId] = useState(() => getStoredWallpaper());
+  const [wallpaperOpacity, setWallpaperOpacity] = useState(() => getStoredWallpaperOpacity());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -101,8 +102,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   // Listen for wallpaper changes from settings
   useEffect(() => {
     const handler = (e: Event) => setWallpaperId((e as CustomEvent).detail);
+    const opacityHandler = (e: Event) => setWallpaperOpacity((e as CustomEvent).detail);
     window.addEventListener("wallpaper-change", handler);
-    return () => window.removeEventListener("wallpaper-change", handler);
+    window.addEventListener("wallpaper-opacity-change", opacityHandler);
+    return () => {
+      window.removeEventListener("wallpaper-change", handler);
+      window.removeEventListener("wallpaper-opacity-change", opacityHandler);
+    };
   }, []);
 
   // Upsert own read receipt when opening conversation
@@ -952,25 +958,30 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       )}
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3"
-        style={(() => {
-          if (isCustomWallpaper(wallpaperId)) {
-            return {
-              backgroundImage: `url(${getCustomWallpaperUrl(wallpaperId)})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundAttachment: "local",
-            } as React.CSSProperties;
-          }
-          const wp = WALLPAPERS.find((w) => w.id === wallpaperId);
-          if (!wp || !wp.gradient) return {};
-          const s: React.CSSProperties = { backgroundImage: wp.gradient };
-          if (wp.size) s.backgroundSize = wp.size;
-          return s;
-        })()}
-      >
+      <div className="flex-1 relative overflow-hidden">
+        {/* Wallpaper background layer */}
+        {wallpaperId !== "none" && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={(() => {
+              const base: React.CSSProperties = { opacity: wallpaperOpacity };
+              if (isCustomWallpaper(wallpaperId)) {
+                return {
+                  ...base,
+                  backgroundImage: `url(${getCustomWallpaperUrl(wallpaperId)})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                };
+              }
+              const wp = WALLPAPERS.find((w) => w.id === wallpaperId);
+              if (!wp || !wp.gradient) return base;
+              const s: React.CSSProperties = { ...base, backgroundImage: wp.gradient };
+              if (wp.size) s.backgroundSize = wp.size;
+              return s;
+            })()}
+          />
+        )}
+        <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-4 space-y-3">
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-8">Đang tải tin nhắn... ✨</div>
         ) : messages.length === 0 ? (
@@ -1174,6 +1185,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             );
           })
         )}
+      </div>
       </div>
 
       {/* Pending files preview */}

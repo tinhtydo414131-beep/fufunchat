@@ -21,6 +21,7 @@ const FONT_SIZE_KEY = "chat_font_size";
 const SOUND_KEY = "notification_sound";
 const LANG_KEY = "app_language";
 const WALLPAPER_KEY = "chat_wallpaper";
+const WALLPAPER_OPACITY_KEY = "chat_wallpaper_opacity";
 
 export function getStoredFontSize(): number {
   const stored = localStorage.getItem(FONT_SIZE_KEY);
@@ -43,6 +44,11 @@ export function isCustomWallpaper(value: string): boolean {
 /** Extracts the URL from a custom wallpaper value */
 export function getCustomWallpaperUrl(value: string): string {
   return value.slice("custom:".length);
+}
+
+export function getStoredWallpaperOpacity(): number {
+  const stored = localStorage.getItem(WALLPAPER_OPACITY_KEY);
+  return stored ? parseFloat(stored) : 0.5;
 }
 
 export const WALLPAPERS: {
@@ -83,6 +89,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [language, setLanguage] = useState(() => getStoredLanguage());
   const [wallpaper, setWallpaper] = useState(() => getStoredWallpaper());
   const [uploading, setUploading] = useState(false);
+  const [wallpaperOpacity, setWallpaperOpacity] = useState(() => getStoredWallpaperOpacity());
 
   useEffect(() => {
     localStorage.setItem(SOUND_KEY, soundEnabled ? "on" : "off");
@@ -101,6 +108,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     localStorage.setItem(WALLPAPER_KEY, wallpaper);
     window.dispatchEvent(new CustomEvent("wallpaper-change", { detail: wallpaper }));
   }, [wallpaper]);
+
+  useEffect(() => {
+    localStorage.setItem(WALLPAPER_OPACITY_KEY, String(wallpaperOpacity));
+    window.dispatchEvent(new CustomEvent("wallpaper-opacity-change", { detail: wallpaperOpacity }));
+  }, [wallpaperOpacity]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--chat-font-size", `${getStoredFontSize()}px`);
@@ -323,6 +335,33 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               onChange={handleUploadWallpaper}
             />
           </div>
+
+          {/* Wallpaper opacity — only show when a non-default wallpaper is selected */}
+          {wallpaper !== "none" && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Sun className="w-5 h-5 text-primary" />
+                <div>
+                  <Label className="text-sm font-semibold">Độ sáng hình nền</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(wallpaperOpacity * 100)}%
+                  </p>
+                </div>
+              </div>
+              <Slider
+                value={[wallpaperOpacity]}
+                onValueChange={([v]) => setWallpaperOpacity(v)}
+                min={0.1}
+                max={1}
+                step={0.05}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+                <span>Tối</span>
+                <span>Sáng</span>
+              </div>
+            </div>
+          )}
 
           <Separator />
 
