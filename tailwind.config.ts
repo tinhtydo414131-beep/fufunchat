@@ -57,6 +57,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        fun: {
+          mint: "hsl(var(--fun-mint))",
+          pink: "hsl(var(--fun-pink))",
+          gold: "hsl(var(--fun-gold))",
+          lavender: "hsl(var(--fun-lavender))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
