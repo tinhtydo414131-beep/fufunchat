@@ -12,6 +12,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
 import { toast } from "sonner";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface Message {
   id: string;
@@ -45,6 +46,7 @@ function getFileName(url: string) {
 
 export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { user } = useAuth();
+  const { sendNotification } = useNotifications();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,6 +91,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             .select("display_name, avatar_url")
             .eq("user_id", newMsg.sender_id)
             .single();
+
+          // Send browser notification for messages from others
+          if (newMsg.sender_id !== user?.id) {
+            const senderName = profile?.display_name || "Ai đó";
+            const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "Đã gửi ảnh 📷" : "Đã gửi tệp 📎";
+            sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
+          }
 
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
