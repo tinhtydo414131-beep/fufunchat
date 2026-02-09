@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Clock } from "lucide-react";
 import { format } from "date-fns";
-import { STATUS_EMOJI, STATUS_LABELS, type StatusType } from "@/hooks/useUserStatus";
+import { STATUS_EMOJI, type StatusType } from "@/hooks/useUserStatus";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface UserProfilePopupProps {
   userId: string;
@@ -50,13 +51,21 @@ export function UserProfilePopup({ userId, displayName, avatarUrl, isOnline, chi
       });
   }, [open, userId]);
 
-  const name = profile?.display_name || displayName || "Người dùng";
+  const { t } = useTranslation();
+  const name = profile?.display_name || displayName || t("chat.user");
   const avatar = profile?.avatar_url || avatarUrl;
   const initials = name.slice(0, 2).toUpperCase();
 
+  const STATUS_KEY_MAP: Record<StatusType, string> = {
+    online: "chat.active",
+    away: "chat.away",
+    busy: "chat.busy",
+    offline: "chat.offline",
+  };
+
   const statusLabel = userStatus
-    ? `${STATUS_EMOJI[userStatus.status]} ${STATUS_LABELS[userStatus.status]}`
-    : isOnline ? "🟢 Đang hoạt động" : "⚫ Ngoại tuyến";
+    ? `${STATUS_EMOJI[userStatus.status]} ${t(STATUS_KEY_MAP[userStatus.status])}`
+    : isOnline ? `🟢 ${t("chat.active")}` : `⚫ ${t("chat.offline")}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -101,7 +110,7 @@ export function UserProfilePopup({ userId, displayName, avatarUrl, isOnline, chi
           {profile?.created_at && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border">
               <Clock className="w-3 h-3" />
-              <span>Tham gia {format(new Date(profile.created_at), "dd/MM/yyyy")}</span>
+              <span>{t("profile.joinedAt")} {format(new Date(profile.created_at), "dd/MM/yyyy")}</span>
             </div>
           )}
         </div>

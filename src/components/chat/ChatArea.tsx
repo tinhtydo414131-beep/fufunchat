@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
-import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
+import { useUserStatus, STATUS_EMOJI } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
 import { useTranslation } from "@/hooks/useI18n";
 
@@ -686,10 +686,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .update({ is_deleted: true, content: null })
       .eq("id", msg.id);
     if (error) {
-      toast.error(t("chat.recallError") || "Error");
+      toast.error(t("chat.recallError"));
     } else {
       setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, is_deleted: true, content: null } : m));
-      toast.success(t("chat.recallSuccess") || "Recalled");
+      toast.success(t("chat.recallSuccess"));
     }
   };
 
@@ -700,10 +700,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .update({ content: editText.trim(), updated_at: new Date().toISOString() })
       .eq("id", editingMsg.id);
     if (error) {
-      toast.error(t("chat.editError") || "Error");
+      toast.error(t("chat.editError"));
     } else {
       setMessages((prev) => prev.map((m) => m.id === editingMsg.id ? { ...m, content: editText.trim(), updated_at: new Date().toISOString() } : m));
-      toast.success(t("chat.editSuccess") || "Edited ✏️");
+      toast.success(t("chat.editSuccess"));
     }
     setEditingMsg(null);
     setEditText("");
@@ -716,10 +716,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .delete()
       .eq("id", msg.id);
     if (error) {
-      toast.error(t("chat.deleteError") || "Error");
+      toast.error(t("chat.deleteError"));
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-      toast.success(t("chat.deleteSuccess") || "Deleted");
+      toast.success(t("chat.deleteSuccess"));
     }
   };
 
@@ -857,7 +857,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             <p className="text-sm font-semibold truncate">{convInfo.otherUserName || t("chat.user")}</p>
             <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
               {otherUserStatus
-                ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${STATUS_LABELS[otherUserStatus.status as keyof typeof STATUS_LABELS] || otherUserStatus.status}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
+                ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${t({ online: "chat.active", away: "chat.away", busy: "chat.busy", offline: "chat.offline" }[otherUserStatus.status as string] || "chat.offline")}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
           </div>

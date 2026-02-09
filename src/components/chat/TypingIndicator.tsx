@@ -1,18 +1,20 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface TypingIndicatorProps {
   names: string[];
 }
 
 export function TypingIndicator({ names }: TypingIndicatorProps) {
+  const { t } = useTranslation();
   if (names.length === 0) return null;
 
   const text =
     names.length === 1
-      ? `${names[0]} đang nhập...`
+      ? t("chat.typingOne").replace("{name}", names[0])
       : names.length === 2
-        ? `${names[0]} và ${names[1]} đang nhập...`
-        : `${names[0]} và ${names.length - 1} người khác đang nhập...`;
+        ? t("chat.typingTwo").replace("{name1}", names[0]).replace("{name2}", names[1])
+        : t("chat.typingMany").replace("{name}", names[0]).replace("{count}", String(names.length - 1));
 
   return (
     <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground">
