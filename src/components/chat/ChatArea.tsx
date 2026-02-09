@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -49,6 +49,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +59,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   useEffect(() => {
     if (!conversationId) return;
     loadMessages();
+    loadConvInfo();
 
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -149,6 +151,24 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       );
     }
     setLoading(false);
+  };
+
+  const loadConvInfo = async () => {
+    if (!conversationId) return;
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("type, name")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    const { count } = await supabase
+      .from("conversation_members")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId);
+
+    if (conv) {
+      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0 });
+    }
   };
 
   const uploadFile = async (file: File): Promise<string | null> => {
@@ -330,6 +350,19 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
 
   return (
     <div className="flex-1 flex flex-col bg-background">
+      {/* Chat Header */}
+      {convInfo && convInfo.type === "group" && (
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{convInfo.name || "Nhóm"}</p>
+            <p className="text-xs text-muted-foreground">{convInfo.memberCount} thành viên</p>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {loading ? (
