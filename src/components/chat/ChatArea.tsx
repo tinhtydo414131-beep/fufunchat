@@ -20,6 +20,7 @@ import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface Message {
   id: string;
@@ -54,6 +55,7 @@ function getFileName(url: string) {
 
 export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { sendNotification } = useNotifications();
   const { getUserStatus, statusMap } = useUserStatus();
   const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
@@ -168,9 +170,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       pinned_by: user.id,
     });
     if (error) {
-      toast.error("Không thể ghim tin nhắn");
+      toast.error(t("chat.pinError") || "Cannot pin");
     } else {
-      toast.success("Đã ghim tin nhắn 📌");
+      toast.success(t("chat.pinSuccess") || "Pinned 📌");
     }
   };
 
@@ -182,9 +184,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .eq("conversation_id", conversationId)
       .eq("message_id", msgId);
     if (error) {
-      toast.error("Không thể bỏ ghim tin nhắn");
+      toast.error(t("chat.unpinError") || "Cannot unpin");
     } else {
-      toast.success("Đã bỏ ghim tin nhắn");
+      toast.success(t("chat.unpinSuccess") || "Unpinned");
     }
   };
 
@@ -212,7 +214,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .update({ muted: newVal })
       .eq("conversation_id", conversationId)
       .eq("user_id", user.id);
-    toast.success(newVal ? "Đã tắt thông báo 🔕" : "Đã bật thông báo 🔔");
+    toast.success(newVal ? t("chat.mutedSuccess") || "🔕" : t("chat.unmutedSuccess") || "🔔");
   };
 
   useEffect(() => {
@@ -246,8 +248,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           // Send browser notification for messages from others
           if (newMsg.sender_id !== user?.id && !isMutedRef.current) {
             playNotificationSound();
-            const senderName = profile?.display_name || "Ai đó";
-            const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "Đã gửi ảnh 📷" : "Đã gửi tệp 📎";
+            const senderName = profile?.display_name || t("chat.user");
+            const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "📷" : "📎";
             sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
             // Update own read receipt since we're viewing this conversation
             updateReadReceipt();
@@ -462,7 +464,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         for (const file of pendingFiles) {
           const url = await uploadFile(file);
           if (!url) {
-            toast.error(`Không thể tải lên ${file.name} 😢`);
+            toast.error(`${file.name} - upload failed`);
             continue;
           }
 
@@ -506,12 +508,12 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
   const scheduleMessage = async () => {
     if (!newMessage.trim() || !conversationId || !user || !scheduleDate || !scheduleTime) {
-      toast.error("Vui lòng nhập tin nhắn và chọn thời gian hẹn giờ");
+      toast.error(t("chat.scheduleError"));
       return;
     }
     const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`);
     if (scheduledAt <= new Date()) {
-      toast.error("Thời gian hẹn giờ phải trong tương lai");
+      toast.error(t("chat.scheduleError"));
       return;
     }
 
@@ -527,9 +529,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
     if (error) {
       console.error("Schedule message error:", error);
-      toast.error("Không thể hẹn giờ tin nhắn");
+      toast.error(t("chat.scheduleError"));
     } else {
-      toast.success(`Tin nhắn sẽ được gửi lúc ${format(scheduledAt, "HH:mm dd/MM/yyyy")} ⏰`);
+      toast.success(`${t("chat.scheduleSuccess")} ${format(scheduledAt, "HH:mm dd/MM/yyyy")} ⏰`);
       setNewMessage("");
       setReplyTo(null);
       setScheduleOpen(false);
@@ -549,7 +551,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       event: "typing",
       payload: {
         userId: user.id,
-        displayName: user.user_metadata?.display_name || user.email?.split("@")[0] || "Ai đó",
+        displayName: user.user_metadata?.display_name || user.email?.split("@")[0] || t("chat.user"),
       },
     });
   }, [conversationId, user]);
@@ -567,10 +569,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    const maxSize = 20 * 1024 * 1024;
     const valid = files.filter((f) => {
       if (f.size > maxSize) {
-        toast.error(`${f.name} quá lớn (tối đa 20MB)`);
+        toast.error(`${f.name} ${t("chat.fileTooLarge")}`);
         return false;
       }
       return true;
@@ -600,7 +602,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         if (blob.size < 1000) {
-          toast.error("Tin nhắn thoại quá ngắn");
+          toast.error("Voice message too short");
           return;
         }
         await sendVoiceMessage(blob);
@@ -614,7 +616,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         setRecordingDuration((d) => d + 1);
       }, 1000);
     } catch {
-      toast.error("Không thể truy cập micro 🎤");
+      toast.error("🎤");
     }
   };
 
@@ -646,7 +648,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         .upload(path, blob, { contentType: "audio/webm" });
 
       if (uploadError) {
-        toast.error("Không thể tải lên tin nhắn thoại 😢");
+        toast.error("Upload failed");
         return;
       }
 
@@ -665,7 +667,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         .eq("id", conversationId);
 
       setReplyTo(null);
-      toast.success("Đã gửi tin nhắn thoại 🎤");
+      toast.success("🎤 ✓");
     } finally {
       setSending(false);
     }
@@ -684,10 +686,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .update({ is_deleted: true, content: null })
       .eq("id", msg.id);
     if (error) {
-      toast.error("Không thể thu hồi tin nhắn");
+      toast.error(t("chat.recallError") || "Error");
     } else {
       setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, is_deleted: true, content: null } : m));
-      toast.success("Đã thu hồi tin nhắn");
+      toast.success(t("chat.recallSuccess") || "Recalled");
     }
   };
 
@@ -698,10 +700,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .update({ content: editText.trim(), updated_at: new Date().toISOString() })
       .eq("id", editingMsg.id);
     if (error) {
-      toast.error("Không thể chỉnh sửa tin nhắn");
+      toast.error(t("chat.editError") || "Error");
     } else {
       setMessages((prev) => prev.map((m) => m.id === editingMsg.id ? { ...m, content: editText.trim(), updated_at: new Date().toISOString() } : m));
-      toast.success("Đã chỉnh sửa tin nhắn ✏️");
+      toast.success(t("chat.editSuccess") || "Edited ✏️");
     }
     setEditingMsg(null);
     setEditText("");
@@ -714,16 +716,16 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .delete()
       .eq("id", msg.id);
     if (error) {
-      toast.error("Không thể xóa tin nhắn");
+      toast.error(t("chat.deleteError") || "Error");
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-      toast.success("Đã xóa tin nhắn");
+      toast.success(t("chat.deleteSuccess") || "Deleted");
     }
   };
 
   const renderMessageContent = (msg: Message, isMe: boolean) => {
     if (msg.is_deleted) {
-      return <span className="italic text-muted-foreground">Tin nhắn đã được thu hồi</span>;
+      return <span className="italic text-muted-foreground">{t("chat.deletedMessage")}</span>;
     }
 
     if (msg.type === "image" && msg.content) {
@@ -735,7 +737,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         >
           <img
             src={msg.content}
-            alt="Ảnh"
+            alt={t("chat.zoomedImage")}
             className="max-w-[260px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
             loading="lazy"
           />
@@ -785,9 +787,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary/10">
             <Sparkles className="w-10 h-10 text-primary" />
           </div>
-          <h2 className="text-xl font-bold">Chào mừng đến FUN Chat ✨</h2>
+          <h2 className="text-xl font-bold">{t("chat.welcome")}</h2>
           <p className="text-muted-foreground text-sm max-w-xs">
-            Chọn một cuộc trò chuyện hoặc bắt đầu cuộc trò chuyện mới để kết nối với ánh sáng 💛
+            {t("chat.welcomeSubtitle")}
           </p>
         </div>
       </div>
@@ -823,7 +825,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         const maxSize = 20 * 1024 * 1024;
         const valid = files.filter((f) => {
           if (f.size > maxSize) {
-            toast.error(`${f.name} quá lớn (tối đa 20MB)`);
+            toast.error(`${f.name} ${t("chat.fileTooLarge")}`);
             return false;
           }
           return true;
@@ -836,7 +838,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-xl pointer-events-none">
           <div className="text-center space-y-2">
             <Paperclip className="w-10 h-10 text-primary mx-auto" />
-            <p className="text-sm font-medium text-primary">Thả tệp vào đây để gửi</p>
+            <p className="text-sm font-medium text-primary">{t("chat.dropFiles")}</p>
           </div>
         </div>
       )}
@@ -852,17 +854,17 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate">{convInfo.otherUserName || "Người dùng"}</p>
+            <p className="text-sm font-semibold truncate">{convInfo.otherUserName || t("chat.user")}</p>
             <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
               {otherUserStatus
                 ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${STATUS_LABELS[otherUserStatus.status as keyof typeof STATUS_LABELS] || otherUserStatus.status}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
-                : isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
+                : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? "Bật thông báo" : "Tắt thông báo"}>
+          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
             <Search className="w-4 h-4" />
           </Button>
         </div>
@@ -878,15 +880,15 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">{convInfo.name || "Nhóm"}</p>
-              <p className="text-xs text-muted-foreground">{convInfo.memberCount} thành viên</p>
+              <p className="text-sm font-semibold truncate">{convInfo.name || t("chat.group")}</p>
+              <p className="text-xs text-muted-foreground">{convInfo.memberCount} {t("chat.members")}</p>
             </div>
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
-          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? "Bật thông báo" : "Tắt thông báo"}>
+          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
             <Search className="w-4 h-4" />
           </Button>
         </div>
@@ -906,7 +908,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               }
             }}
           >
-            {pinnedMessageIds.size} tin nhắn đã ghim 📌
+            {pinnedMessageIds.size} {t("chat.pinnedMessages")}
           </button>
           <button
             onClick={() => setShowPinnedBanner(false)}
@@ -923,7 +925,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <Input
             ref={searchInputRef}
-            placeholder="Tìm kiếm tin nhắn..."
+            placeholder={t("chat.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 text-sm"
@@ -983,10 +985,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         )}
         <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-4 space-y-3">
         {loading ? (
-          <div className="text-center text-muted-foreground text-sm py-8">Đang tải tin nhắn... ✨</div>
+          <div className="text-center text-muted-foreground text-sm py-8">{t("chat.loadingMessages")}</div>
         ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground text-sm py-8">
-            Bắt đầu cuộc trò chuyện nào! Gửi tin nhắn đầu tiên 💛
+            {t("chat.startConversation")}
           </div>
         ) : (
           messages.map((msg, i) => {
@@ -1030,7 +1032,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 <div className={cn("max-w-[70%] space-y-1", isMe && "items-end")}>
                   {showAvatar && !isMe && (
                     <p className="text-xs text-muted-foreground font-medium pl-1">
-                      {msg.sender?.display_name || "Người dùng"}
+                      {msg.sender?.display_name || t("chat.user")}
                     </p>
                   )}
                   {/* Replied-to preview */}
@@ -1043,12 +1045,12 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         isMe && "text-right"
                       )}>
                         <span className="font-semibold text-primary/70">
-                          {repliedMsg.sender?.display_name || "Người dùng"}
+                          {repliedMsg.sender?.display_name || t("chat.user")}
                         </span>
                         <p className="truncate text-muted-foreground">
-                          {repliedMsg.is_deleted ? "Tin nhắn đã thu hồi" :
-                            repliedMsg.type === "image" ? "📷 Ảnh" :
-                            repliedMsg.type === "file" ? "📎 File" :
+                          {repliedMsg.is_deleted ? t("chat.deletedMessage") :
+                            repliedMsg.type === "image" ? "📷" :
+                            repliedMsg.type === "file" ? "📎" :
                             repliedMsg.content || ""}
                         </p>
                       </div>
@@ -1060,21 +1062,21 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         <button
                           onClick={() => deleteMessage(msg)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                          title="Xóa tin nhắn"
+                          title={t("chat.recallMessage")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => recallMessage(msg)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title="Thu hồi tin nhắn"
+                          title={t("chat.recallMessage")}
                         >
                           <Undo2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title="Trả lời"
+                          title={t("chat.reply")}
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
@@ -1082,7 +1084,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                           <button
                             onClick={() => { setEditingMsg(msg); setEditText(msg.content || ""); }}
                             className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                            title="Chỉnh sửa"
+                            title={t("chat.edit")}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -1090,14 +1092,14 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         <button
                           onClick={() => setForwardMsg(msg)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title="Chuyển tiếp"
+                          title={t("chat.forward")}
                         >
                           <Forward className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={pinnedMessageIds.has(msg.id) ? "Bỏ ghim" : "Ghim tin nhắn"}
+                          title={pinnedMessageIds.has(msg.id) ? t("chat.unpin") : t("chat.pin")}
                         >
                           {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                         </button>
@@ -1124,12 +1126,12 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                               if (e.key === "Escape") { setEditingMsg(null); setEditText(""); }
                             }}
                             className="bg-transparent border-b border-primary-foreground/40 outline-none text-sm flex-1 min-w-0 placeholder:text-primary-foreground/50"
-                            placeholder="Chỉnh sửa..."
+                            placeholder={t("chat.editPlaceholder")}
                           />
-                          <button onClick={saveEditMessage} className="p-0.5 hover:opacity-80" title="Lưu">
+                          <button onClick={saveEditMessage} className="p-0.5 hover:opacity-80" title={t("chat.save")}>
                             <Check className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-0.5 hover:opacity-80" title="Hủy">
+                          <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-0.5 hover:opacity-80" title={t("chat.cancel")}>
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1142,21 +1144,21 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         <button
                           onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title="Trả lời"
+                          title={t("chat.reply")}
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setForwardMsg(msg)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title="Chuyển tiếp"
+                          title={t("chat.forward")}
                         >
                           <Forward className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={pinnedMessageIds.has(msg.id) ? "Bỏ ghim" : "Ghim tin nhắn"}
+                          title={pinnedMessageIds.has(msg.id) ? t("chat.unpin") : t("chat.pin")}
                         >
                           {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                         </button>
@@ -1174,10 +1176,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                       {format(new Date(msg.created_at), "HH:mm")}
                     </p>
                     {msg.updated_at && msg.updated_at !== msg.created_at && !msg.is_deleted && (
-                      <span className="text-[10px] text-muted-foreground italic">(đã chỉnh sửa)</span>
+                      <span className="text-[10px] text-muted-foreground italic">{t("chat.edited")}</span>
                     )}
                     {isLastSeen && (
-                      <span className="text-[10px] text-primary font-medium">✓ Đã xem</span>
+                      <span className="text-[10px] text-primary font-medium">{t("chat.seen")}</span>
                     )}
                   </div>
                 </div>
@@ -1225,10 +1227,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         <div className="px-3 py-2 border-t border-border bg-card flex items-center gap-2">
           <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
             <p className="text-xs font-semibold text-primary truncate">
-              {replyTo.sender?.display_name || "Người dùng"}
+              {replyTo.sender?.display_name || t("chat.user")}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {replyTo.type === "image" ? "📷 Ảnh" : replyTo.type === "file" ? "📎 File" : replyTo.content || ""}
+              {replyTo.type === "image" ? "📷" : replyTo.type === "file" ? "📎" : replyTo.content || ""}
             </p>
           </div>
           <button onClick={() => setReplyTo(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
@@ -1247,14 +1249,14 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               size="icon"
               onClick={cancelRecording}
               className="shrink-0 text-destructive hover:text-destructive"
-              title="Hủy"
+              title={t("chat.cancel")}
             >
               <X className="w-5 h-5" />
             </Button>
             <div className="flex-1 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
               <span className="text-sm font-medium text-destructive">
-                Đang ghi âm... {formatDuration(recordingDuration)}
+                {t("chat.recording")} {formatDuration(recordingDuration)}
               </span>
             </div>
             <Button
@@ -1262,7 +1264,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               size="icon"
               onClick={stopRecording}
               className="shrink-0"
-              title="Gửi"
+              title={t("chat.send")}
             >
               <Send className="w-5 h-5" />
             </Button>
@@ -1276,7 +1278,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               size="icon"
               className="shrink-0 text-muted-foreground hover:text-primary"
               onClick={() => imageInputRef.current?.click()}
-              title="Gửi ảnh"
+              title={t("chat.sendImage")}
             >
               <ImageIcon className="w-5 h-5" />
             </Button>
@@ -1286,13 +1288,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               size="icon"
               className="shrink-0 text-muted-foreground hover:text-primary"
               onClick={() => fileInputRef.current?.click()}
-              title="Đính kèm file"
+              title={t("chat.attachFile")}
             >
               <Paperclip className="w-5 h-5" />
             </Button>
             <Input
               ref={inputRef}
-              placeholder="Nhập tin nhắn... ✨"
+              placeholder={t("chat.inputPlaceholder")}
               value={newMessage}
               onChange={handleInputChange}
               className="bg-muted/50 border-0"
@@ -1306,7 +1308,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                       size="icon"
                       variant="ghost"
                       className="shrink-0 text-muted-foreground hover:text-primary"
-                      title="Hẹn giờ gửi"
+                      title={t("chat.scheduleSend")}
                       disabled={!newMessage.trim()}
                     >
                       <Clock className="w-5 h-5" />
@@ -1314,9 +1316,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3 pointer-events-auto" align="end" side="top">
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold">Hẹn giờ gửi ⏰</p>
+                      <p className="text-sm font-semibold">{t("chat.scheduleTitle")}</p>
                       <div className="space-y-2">
-                        <label className="text-xs text-muted-foreground">Ngày</label>
+                        <label className="text-xs text-muted-foreground">{t("chat.date")}</label>
                         <Input
                           type="date"
                           value={scheduleDate}
@@ -1326,7 +1328,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs text-muted-foreground">Giờ</label>
+                        <label className="text-xs text-muted-foreground">{t("chat.time")}</label>
                         <Input
                           type="time"
                           value={scheduleTime}
@@ -1340,7 +1342,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         onClick={scheduleMessage}
                         disabled={!scheduleDate || !scheduleTime}
                       >
-                        <Clock className="w-4 h-4 mr-1" /> Hẹn giờ
+                        <Clock className="w-4 h-4 mr-1" /> {t("chat.schedule")}
                       </Button>
                     </div>
                   </PopoverContent>
@@ -1361,7 +1363,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 variant="ghost"
                 onClick={startRecording}
                 className="shrink-0 text-muted-foreground hover:text-primary"
-                title="Ghi âm tin nhắn thoại"
+                title={t("chat.voiceRecord")}
               >
                 <Mic className="w-5 h-5" />
               </Button>
@@ -1409,7 +1411,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           </button>
           <img
             src={lightboxUrl}
-            alt="Ảnh phóng to"
+            alt={t("chat.zoomedImage")}
             className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl animate-in zoom-in-90 duration-200"
             onClick={(e) => e.stopPropagation()}
           />

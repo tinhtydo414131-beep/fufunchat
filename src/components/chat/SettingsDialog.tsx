@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -36,12 +37,10 @@ export function getStoredWallpaper(): string {
   return localStorage.getItem(WALLPAPER_KEY) || "none";
 }
 
-/** Returns true if the wallpaper value is a custom uploaded image */
 export function isCustomWallpaper(value: string): boolean {
   return value.startsWith("custom:");
 }
 
-/** Extracts the URL from a custom wallpaper value */
 export function getCustomWallpaperUrl(value: string): string {
   return value.slice("custom:".length);
 }
@@ -53,17 +52,17 @@ export function getStoredWallpaperOpacity(): number {
 
 export const WALLPAPERS: {
   id: string;
-  label: string;
+  labelKey: string;
   gradient?: string;
   size?: string;
 }[] = [
-  { id: "none", label: "Mặc định" },
-  { id: "dots", label: "Chấm bi", gradient: "radial-gradient(circle, hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px)", size: "16px 16px" },
-  { id: "grid", label: "Lưới", gradient: "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)", size: "24px 24px" },
-  { id: "diagonal", label: "Sọc chéo", gradient: "repeating-linear-gradient(45deg, transparent, transparent 10px, hsl(var(--muted-foreground) / 0.04) 10px, hsl(var(--muted-foreground) / 0.04) 11px)" },
-  { id: "bubbles", label: "Bong bóng", gradient: "radial-gradient(circle at 20% 50%, hsl(var(--fun-pink) / 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(var(--fun-mint) / 0.15) 0%, transparent 50%), radial-gradient(circle at 60% 80%, hsl(var(--fun-lavender) / 0.15) 0%, transparent 50%)" },
-  { id: "warm", label: "Ấm áp", gradient: "linear-gradient(135deg, hsl(var(--fun-gold) / 0.12) 0%, hsl(var(--fun-pink) / 0.08) 50%, hsl(var(--fun-lavender) / 0.1) 100%)" },
-  { id: "ocean", label: "Đại dương", gradient: "linear-gradient(180deg, hsl(var(--fun-mint) / 0.1) 0%, hsl(var(--background)) 40%, hsl(var(--fun-lavender) / 0.08) 100%)" },
+  { id: "none", labelKey: "wallpaper.none" },
+  { id: "dots", labelKey: "wallpaper.dots", gradient: "radial-gradient(circle, hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px)", size: "16px 16px" },
+  { id: "grid", labelKey: "wallpaper.grid", gradient: "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)", size: "24px 24px" },
+  { id: "diagonal", labelKey: "wallpaper.diagonal", gradient: "repeating-linear-gradient(45deg, transparent, transparent 10px, hsl(var(--muted-foreground) / 0.04) 10px, hsl(var(--muted-foreground) / 0.04) 11px)" },
+  { id: "bubbles", labelKey: "wallpaper.bubbles", gradient: "radial-gradient(circle at 20% 50%, hsl(var(--fun-pink) / 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(var(--fun-mint) / 0.15) 0%, transparent 50%), radial-gradient(circle at 60% 80%, hsl(var(--fun-lavender) / 0.15) 0%, transparent 50%)" },
+  { id: "warm", labelKey: "wallpaper.warm", gradient: "linear-gradient(135deg, hsl(var(--fun-gold) / 0.12) 0%, hsl(var(--fun-pink) / 0.08) 50%, hsl(var(--fun-lavender) / 0.1) 100%)" },
+  { id: "ocean", labelKey: "wallpaper.ocean", gradient: "linear-gradient(180deg, hsl(var(--fun-mint) / 0.1) 0%, hsl(var(--background)) 40%, hsl(var(--fun-lavender) / 0.08) 100%)" },
 ];
 
 const LANGUAGES = [
@@ -75,11 +74,12 @@ const LANGUAGES = [
 ];
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [soundEnabled, setSoundEnabled] = useState(
@@ -123,11 +123,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     if (!file || !user) return;
 
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error("Chỉ hỗ trợ ảnh JPG, PNG, WebP, GIF");
+      toast.error(t("settings.uploadTypeError"));
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("Ảnh phải nhỏ hơn 5MB");
+      toast.error(t("settings.uploadSizeError"));
       return;
     }
 
@@ -147,10 +147,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         .getPublicUrl(filePath);
 
       setWallpaper(`custom:${urlData.publicUrl}`);
-      toast.success("Đã tải hình nền lên! 🎨");
+      toast.success(t("settings.uploadSuccess"));
     } catch (err: any) {
       console.error("Wallpaper upload error:", err);
-      toast.error("Không thể tải ảnh lên — thử lại nhé");
+      toast.error(t("settings.uploadError"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -168,7 +168,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold font-[Quicksand]">
-            Cài đặt ⚙️
+            {t("settings.title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -182,8 +182,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <Sun className="w-5 h-5 text-primary" />
               )}
               <div>
-                <Label className="text-sm font-semibold">Chế độ tối</Label>
-                <p className="text-xs text-muted-foreground">Chuyển giao diện sáng / tối</p>
+                <Label className="text-sm font-semibold">{t("settings.darkMode")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.darkModeDesc")}</p>
               </div>
             </div>
             <Switch
@@ -199,8 +199,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center gap-3">
               <Volume2 className="w-5 h-5 text-primary" />
               <div>
-                <Label className="text-sm font-semibold">Âm thanh thông báo</Label>
-                <p className="text-xs text-muted-foreground">Phát âm thanh khi có tin nhắn mới</p>
+                <Label className="text-sm font-semibold">{t("settings.notifSound")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.notifSoundDesc")}</p>
               </div>
             </div>
             <Switch
@@ -216,7 +216,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center gap-3">
               <Type className="w-5 h-5 text-primary" />
               <div>
-                <Label className="text-sm font-semibold">Cỡ chữ tin nhắn</Label>
+                <Label className="text-sm font-semibold">{t("settings.fontSize")}</Label>
                 <p className="text-xs text-muted-foreground">{fontSize}px</p>
               </div>
             </div>
@@ -229,8 +229,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               className="w-full"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground px-1">
-              <span>Nhỏ</span>
-              <span>Lớn</span>
+              <span>{t("settings.fontSmall")}</span>
+              <span>{t("settings.fontLarge")}</span>
             </div>
           </div>
 
@@ -241,12 +241,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center gap-3">
               <Wallpaper className="w-5 h-5 text-primary" />
               <div>
-                <Label className="text-sm font-semibold">Hình nền trò chuyện</Label>
-                <p className="text-xs text-muted-foreground">Chọn hình nền hoặc tải ảnh lên</p>
+                <Label className="text-sm font-semibold">{t("settings.wallpaper")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.wallpaperDesc")}</p>
               </div>
             </div>
 
-            {/* Preset wallpapers */}
             <div className="grid grid-cols-4 gap-2">
               {WALLPAPERS.map((wp) => {
                 const isSelected = !hasCustomWallpaper && wallpaper === wp.id;
@@ -265,7 +264,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                         ? "border-primary ring-2 ring-primary/20"
                         : "border-border hover:border-muted-foreground/30"
                     )}
-                    title={wp.label}
+                    title={t(wp.labelKey)}
                   >
                     <div className="absolute inset-0 bg-background" style={previewStyle} />
                     {isSelected && (
@@ -274,17 +273,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       </div>
                     )}
                     <span className="absolute bottom-0.5 inset-x-0 text-[9px] text-center text-muted-foreground font-medium">
-                      {wp.label}
+                      {t(wp.labelKey)}
                     </span>
                   </button>
                 );
               })}
 
-              {/* Custom upload tile */}
               {hasCustomWallpaper ? (
                 <button
                   className="relative h-16 rounded-lg border-2 border-primary ring-2 ring-primary/20 overflow-hidden"
-                  title="Ảnh tùy chỉnh"
+                  title={t("settings.removeWallpaper")}
                 >
                   <img
                     src={getCustomWallpaperUrl(wallpaper)}
@@ -300,7 +298,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       removeCustomWallpaper();
                     }}
                     className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-destructive text-destructive-foreground"
-                    title="Xóa ảnh nền"
+                    title={t("settings.removeWallpaper")}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -313,7 +311,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     "relative h-16 rounded-lg border-2 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center gap-0.5",
                     "border-border hover:border-primary/50 hover:bg-primary/5"
                   )}
-                  title="Tải ảnh lên"
+                  title={t("settings.uploadImage")}
                 >
                   {uploading ? (
                     <Loader2 className="w-4 h-4 text-primary animate-spin" />
@@ -321,7 +319,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     <Upload className="w-4 h-4 text-muted-foreground" />
                   )}
                   <span className="text-[9px] text-muted-foreground font-medium">
-                    {uploading ? "Đang tải..." : "Tải ảnh"}
+                    {uploading ? t("settings.uploading") : t("settings.uploadImage")}
                   </span>
                 </button>
               )}
@@ -336,13 +334,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             />
           </div>
 
-          {/* Wallpaper opacity — only show when a non-default wallpaper is selected */}
           {wallpaper !== "none" && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Sun className="w-5 h-5 text-primary" />
                 <div>
-                  <Label className="text-sm font-semibold">Độ sáng hình nền</Label>
+                  <Label className="text-sm font-semibold">{t("settings.wallpaperOpacity")}</Label>
                   <p className="text-xs text-muted-foreground">
                     {Math.round(wallpaperOpacity * 100)}%
                   </p>
@@ -357,8 +354,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 className="w-full"
               />
               <div className="flex justify-between text-[10px] text-muted-foreground px-1">
-                <span>Tối</span>
-                <span>Sáng</span>
+                <span>{t("settings.opacityDark")}</span>
+                <span>{t("settings.opacityBright")}</span>
               </div>
             </div>
           )}
@@ -370,8 +367,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-primary" />
               <div>
-                <Label className="text-sm font-semibold">Ngôn ngữ</Label>
-                <p className="text-xs text-muted-foreground">Chọn ngôn ngữ hiển thị</p>
+                <Label className="text-sm font-semibold">{t("settings.language")}</Label>
+                <p className="text-xs text-muted-foreground">{t("settings.languageDesc")}</p>
               </div>
             </div>
             <Select value={language} onValueChange={setLanguage}>

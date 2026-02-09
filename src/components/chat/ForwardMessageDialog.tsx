@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Forward, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface Conversation {
   id: string;
@@ -39,6 +40,7 @@ export function ForwardMessageDialog({
   currentConversationId,
 }: ForwardMessageDialogProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [forwarding, setForwarding] = useState<string | null>(null);
@@ -75,7 +77,6 @@ export function ForwardMessageDialog({
 
     if (!convs) return;
 
-    // For direct convos, get the other user's name
     const directConvs = convs.filter((c) => c.type === "direct");
     const results: Conversation[] = [];
 
@@ -102,7 +103,7 @@ export function ForwardMessageDialog({
           id: conv.id,
           name: conv.name,
           type: conv.type,
-          displayName: profile?.display_name || "Người dùng",
+          displayName: profile?.display_name || t("chat.user"),
           avatarUrl: profile?.avatar_url,
         });
       }
@@ -113,7 +114,7 @@ export function ForwardMessageDialog({
         id: conv.id,
         name: conv.name,
         type: conv.type,
-        displayName: conv.name || "Nhóm",
+        displayName: conv.name || t("chat.group"),
       });
     }
 
@@ -127,7 +128,7 @@ export function ForwardMessageDialog({
     try {
       const forwardedContent =
         message.type === "text"
-          ? `↪ Chuyển tiếp từ ${message.sender?.display_name || "Người dùng"}:\n${message.content}`
+          ? `↪ ${t("chat.forwardedFrom")} ${message.sender?.display_name || t("chat.user")}:\n${message.content}`
           : message.content;
 
       await supabase.from("messages").insert({
@@ -142,10 +143,10 @@ export function ForwardMessageDialog({
         .update({ updated_at: new Date().toISOString() })
         .eq("id", convId);
 
-      toast.success("Đã chuyển tiếp tin nhắn ✨");
+      toast.success(t("forward.success"));
       onOpenChange(false);
     } catch {
-      toast.error("Không thể chuyển tiếp tin nhắn");
+      toast.error(t("forward.error"));
     } finally {
       setForwarding(null);
     }
@@ -161,14 +162,14 @@ export function ForwardMessageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Forward className="w-4 h-4" />
-            Chuyển tiếp tin nhắn
+            {t("forward.title")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm cuộc trò chuyện..."
+            placeholder={t("forward.search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -178,7 +179,7 @@ export function ForwardMessageDialog({
         <div className="max-h-[300px] overflow-y-auto space-y-1">
           {filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Không tìm thấy cuộc trò chuyện
+              {t("forward.noResults")}
             </p>
           ) : (
             filtered.map((conv) => (
