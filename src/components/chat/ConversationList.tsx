@@ -171,7 +171,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
 
   const getDisplayName = (c: Conversation) => {
     if (c.type === "direct" && c.other_user) return c.other_user.display_name;
-    return c.name || "Cuộc trò chuyện";
+    return c.name || t("chat.group");
   };
 
   const getInitials = (name: string) => {
