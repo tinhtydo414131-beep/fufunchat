@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./SettingsDialog";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface Conversation {
   id: string;
@@ -44,6 +45,7 @@ export function markConversationRead(userId: string, convId: string) {
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -188,21 +190,21 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Sparkles className="w-4 h-4 text-primary/60" />
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title="Hồ sơ">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title={t("sidebar.profile")}>
               <User className="w-5 h-5" />
             </Button>
             {onGlobalSearch && (
-              <Button variant="ghost" size="icon" onClick={onGlobalSearch} title="Tìm kiếm toàn bộ">
+              <Button variant="ghost" size="icon" onClick={onGlobalSearch} title={t("sidebar.globalSearch")}>
                 <SearchCheck className="w-5 h-5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
+            <Button variant="ghost" size="icon" onClick={onNewChat} title={t("sidebar.newChat")}>
               <Plus className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Cài đặt">
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("sidebar.settings")}>
               <Settings className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onSignOut} title="Đăng xuất">
+            <Button variant="ghost" size="icon" onClick={onSignOut} title={t("sidebar.signOut")}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
@@ -210,7 +212,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm cuộc trò chuyện 💛"
+            placeholder={t("sidebar.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-muted/50"
@@ -222,19 +224,17 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
       <ScrollArea className="flex-1">
         {loading ? (
           <div className="p-4 text-center text-muted-foreground text-sm">
-            Đang tải... ✨
+            {t("sidebar.loading")}
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-6 text-center space-y-2">
             <MessageCircle className="w-10 h-10 mx-auto text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              {search
-                ? "Chưa tìm thấy kết quả — thử từ khóa khác nhé 💛"
-                : "Bắt đầu cuộc trò chuyện đầu tiên nào! ✨"}
+              {search ? t("sidebar.noResults") : t("sidebar.startFirst")}
             </p>
             {!search && (
               <Button variant="outline" size="sm" onClick={onNewChat}>
-                <Plus className="w-4 h-4 mr-1" /> Chat mới
+                <Plus className="w-4 h-4 mr-1" /> {t("sidebar.newChatBtn")}
               </Button>
             )}
           </div>
@@ -276,8 +276,8 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                     <p className="text-xs text-muted-foreground truncate">
                       {conv.last_message || (
                         conv.type === "direct" && conv.other_user_id
-                          ? isOnline(conv.other_user_id) ? "Đang hoạt động" : "Ngoại tuyến"
-                          : conv.type === "group" ? "Nhóm" : "Trò chuyện"
+                          ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
+                          : conv.type === "group" ? t("sidebar.group") : t("sidebar.chat")
                       )}
                     </p>
                   </div>
