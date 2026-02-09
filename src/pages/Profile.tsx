@@ -12,11 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Camera, Save, Sparkles, Volume2, VolumeX, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
+import { useUserStatus, STATUS_LABELS, STATUS_EMOJI, type StatusType } from "@/hooks/useUserStatus";
 
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { myStatus, updateStatus } = useUserStatus();
+  const [statusCustomText, setStatusCustomText] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
@@ -30,6 +33,7 @@ const Profile = () => {
   useEffect(() => {
     if (!user) return;
     loadProfile();
+    setStatusCustomText(myStatus.custom_text);
   }, [user]);
 
   const loadProfile = async () => {
@@ -178,6 +182,52 @@ const Profile = () => {
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Status */}
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Trạng thái</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {(["online", "away", "busy", "offline"] as StatusType[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => updateStatus(s)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    myStatus.status === s
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <span>{STATUS_EMOJI[s]}</span>
+                  <span>{STATUS_LABELS[s]}</span>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customStatus">Trạng thái tùy chỉnh</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="customStatus"
+                  placeholder="Ví dụ: Đang họp 📋"
+                  value={statusCustomText}
+                  onChange={(e) => setStatusCustomText(e.target.value)}
+                  maxLength={50}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    updateStatus(myStatus.status, statusCustomText);
+                    toast.success("Đã cập nhật trạng thái ✨");
+                  }}
+                >
+                  Lưu
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

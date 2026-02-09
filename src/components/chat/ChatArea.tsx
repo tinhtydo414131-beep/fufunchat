@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
+import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
 
 interface Message {
   id: string;
@@ -52,6 +53,8 @@ function getFileName(url: string) {
 export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { user } = useAuth();
   const { sendNotification } = useNotifications();
+  const { getUserStatus, statusMap } = useUserStatus();
+  const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -115,6 +118,15 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       setOtherReadAt(null);
     }
   }, [conversationId, user]);
+
+  // Load other user's status when convInfo changes
+  useEffect(() => {
+    if (convInfo?.otherUserId) {
+      getUserStatus(convInfo.otherUserId).then(setOtherUserStatus);
+    } else {
+      setOtherUserStatus(null);
+    }
+  }, [convInfo?.otherUserId, statusMap]);
 
   const loadPinnedMessages = useCallback(async () => {
     if (!conversationId) return;
@@ -759,7 +771,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{convInfo.otherUserName || "Người dùng"}</p>
             <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
-              {isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
+              {otherUserStatus
+                ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${STATUS_LABELS[otherUserStatus.status as keyof typeof STATUS_LABELS] || otherUserStatus.status}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
+                : isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
