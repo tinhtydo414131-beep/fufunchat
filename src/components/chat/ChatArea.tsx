@@ -27,6 +27,7 @@ interface Message {
 
 interface ChatAreaProps {
   conversationId: string | null;
+  isOnline: (userId: string) => boolean;
 }
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"];
@@ -42,7 +43,7 @@ function getFileName(url: string) {
   return decodeURIComponent(parts[parts.length - 1] || "file");
 }
 
-export function ChatArea({ conversationId }: ChatAreaProps) {
+export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -52,7 +53,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number } | null>(null);
+  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string } | null>(null);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -159,7 +160,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   };
 
   const loadConvInfo = async () => {
-    if (!conversationId) return;
+    if (!conversationId || !user) return;
     const { data: conv } = await supabase
       .from("conversations")
       .select("type, name")
@@ -171,8 +172,28 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       .select("id", { count: "exact", head: true })
       .eq("conversation_id", conversationId);
 
+    let otherUserId: string | undefined;
+    let otherUserName: string | undefined;
+    if (conv?.type === "direct") {
+      const { data: members } = await supabase
+        .from("conversation_members")
+        .select("user_id")
+        .eq("conversation_id", conversationId)
+        .neq("user_id", user.id)
+        .limit(1);
+      if (members && members.length > 0) {
+        otherUserId = members[0].user_id;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", otherUserId)
+          .maybeSingle();
+        otherUserName = profile?.display_name || undefined;
+      }
+    }
+
     if (conv) {
-      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0 });
+      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0, otherUserId, otherUserName });
     }
   };
 
@@ -387,6 +408,24 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   return (
     <div className="flex-1 flex flex-col bg-background">
       {/* Chat Header */}
+      {convInfo && convInfo.type === "direct" && convInfo.otherUserId && (
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+              {convInfo.otherUserName?.slice(0, 2).toUpperCase() || "??"}
+            </div>
+            {isOnline(convInfo.otherUserId) && (
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{convInfo.otherUserName || "Người dùng"}</p>
+            <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
+              {isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
+            </p>
+          </div>
+        </div>
+      )}
       {convInfo && convInfo.type === "group" && (
         <button
           type="button"
