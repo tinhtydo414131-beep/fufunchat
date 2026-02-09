@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -65,12 +65,17 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [searchIndex, setSearchIndex] = useState(0);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastTypingRef = useRef(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Upsert own read receipt when opening conversation
   const updateReadReceipt = useCallback(async () => {
@@ -415,6 +420,100 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingDuration(0);
+
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        if (blob.size < 1000) {
+          toast.error("Tin nhắn thoại quá ngắn");
+          return;
+        }
+        await sendVoiceMessage(blob);
+      };
+
+      mediaRecorder.start(100);
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((d) => d + 1);
+      }, 1000);
+    } catch {
+      toast.error("Không thể truy cập micro 🎤");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+      mediaRecorderRef.current.stop();
+      audioChunksRef.current = [];
+    }
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+    setRecordingDuration(0);
+  };
+
+  const sendVoiceMessage = async (blob: Blob) => {
+    if (!conversationId || !user) return;
+    setSending(true);
+    try {
+      const path = `${conversationId}/${crypto.randomUUID()}.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-media")
+        .upload(path, blob, { contentType: "audio/webm" });
+
+      if (uploadError) {
+        toast.error("Không thể tải lên tin nhắn thoại 😢");
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: urlData.publicUrl,
+        type: "voice",
+        reply_to: replyTo?.id || null,
+      });
+
+      await supabase
+        .from("conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+
+      setReplyTo(null);
+      toast.success("Đã gửi tin nhắn thoại 🎤");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatDuration = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
   const recallMessage = async (msg: Message) => {
     if (msg.sender_id !== user?.id) return;
     const { error } = await supabase
@@ -481,6 +580,17 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           <span className="text-sm truncate max-w-[180px]">{fileName}</span>
           <Download className="w-4 h-4 shrink-0 ml-auto" />
         </a>
+      );
+    }
+
+    if (msg.type === "voice" && msg.content) {
+      return (
+        <div className="flex items-center gap-2 min-w-[180px]">
+          <Mic className="w-4 h-4 shrink-0 text-primary" />
+          <audio controls preload="metadata" className="h-8 max-w-[220px]">
+            <source src={msg.content} type="audio/webm" />
+          </audio>
+        </div>
       );
     }
 
@@ -774,44 +884,87 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-3 border-t border-border bg-card">
-        <div className="flex items-center gap-2">
-          <EmojiPicker onSelect={handleEmojiSelect} />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground hover:text-primary"
-            onClick={() => imageInputRef.current?.click()}
-            title="Gửi ảnh"
-          >
-            <ImageIcon className="w-5 h-5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground hover:text-primary"
-            onClick={() => fileInputRef.current?.click()}
-            title="Đính kèm file"
-          >
-            <Paperclip className="w-5 h-5" />
-          </Button>
-          <Input
-            ref={inputRef}
-            placeholder="Nhập tin nhắn... ✨"
-            value={newMessage}
-            onChange={handleInputChange}
-            className="bg-muted/50 border-0"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending || uploading}
-            className="shrink-0"
-          >
-            <Send className="w-5 h-5" />
-          </Button>
-        </div>
+        {isRecording ? (
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={cancelRecording}
+              className="shrink-0 text-destructive hover:text-destructive"
+              title="Hủy"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+            <div className="flex-1 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+              <span className="text-sm font-medium text-destructive">
+                Đang ghi âm... {formatDuration(recordingDuration)}
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              onClick={stopRecording}
+              className="shrink-0"
+              title="Gửi"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <EmojiPicker onSelect={handleEmojiSelect} />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-primary"
+              onClick={() => imageInputRef.current?.click()}
+              title="Gửi ảnh"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-primary"
+              onClick={() => fileInputRef.current?.click()}
+              title="Đính kèm file"
+            >
+              <Paperclip className="w-5 h-5" />
+            </Button>
+            <Input
+              ref={inputRef}
+              placeholder="Nhập tin nhắn... ✨"
+              value={newMessage}
+              onChange={handleInputChange}
+              className="bg-muted/50 border-0"
+            />
+            {newMessage.trim() || pendingFiles.length > 0 ? (
+              <Button
+                type="submit"
+                size="icon"
+                disabled={sending || uploading}
+                className="shrink-0"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={startRecording}
+                className="shrink-0 text-muted-foreground hover:text-primary"
+                title="Ghi âm tin nhắn thoại"
+              >
+                <Mic className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
+        )}
         <input
           ref={imageInputRef}
           type="file"
