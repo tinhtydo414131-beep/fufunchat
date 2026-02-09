@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Smile, Sparkles } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { EmojiPicker } from "./EmojiPicker";
+import { TypingIndicator } from "./TypingIndicator";
 
 interface Message {
   id: string;
@@ -30,13 +32,17 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastTypingRef = useRef(0);
 
   useEffect(() => {
     if (!conversationId) return;
     loadMessages();
 
+    // Realtime messages
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -49,7 +55,6 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
         },
         async (payload) => {
           const newMsg = payload.new as Message;
-          // Fetch sender profile
           const { data: profile } = await supabase
             .from("profiles")
             .select("display_name, avatar_url")
@@ -64,10 +69,33 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       )
       .subscribe();
 
+    // Typing indicator broadcast channel
+    const typingChannel = supabase
+      .channel(`typing:${conversationId}`)
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const { userId, displayName } = payload.payload as { userId: string; displayName: string };
+        if (userId === user?.id) return;
+        setTypingUsers((prev) => {
+          const next = new Map(prev);
+          next.set(userId, displayName);
+          return next;
+        });
+        // Auto-clear after 3s
+        setTimeout(() => {
+          setTypingUsers((prev) => {
+            const next = new Map(prev);
+            next.delete(userId);
+            return next;
+          });
+        }, 3000);
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(typingChannel);
     };
-  }, [conversationId]);
+  }, [conversationId, user?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -138,6 +166,34 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     setSending(false);
     inputRef.current?.focus();
   };
+
+  const broadcastTyping = useCallback(() => {
+    if (!conversationId || !user) return;
+    const now = Date.now();
+    if (now - lastTypingRef.current < 2000) return;
+    lastTypingRef.current = now;
+
+    supabase.channel(`typing:${conversationId}`).send({
+      type: "broadcast",
+      event: "typing",
+      payload: {
+        userId: user.id,
+        displayName: user.user_metadata?.display_name || user.email?.split("@")[0] || "Ai đó",
+      },
+    });
+  }, [conversationId, user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    broadcastTyping();
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  const typingNames = Array.from(typingUsers.values());
 
   if (!conversationId) {
     return (
@@ -214,17 +270,18 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
         )}
       </div>
 
+      {/* Typing indicator */}
+      <TypingIndicator names={typingNames} />
+
       {/* Input */}
       <form onSubmit={sendMessage} className="p-3 border-t border-border bg-card">
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground">
-            <Smile className="w-5 h-5" />
-          </Button>
+          <EmojiPicker onSelect={handleEmojiSelect} />
           <Input
             ref={inputRef}
             placeholder="Nhập tin nhắn... ✨"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             className="bg-muted/50 border-0"
           />
           <Button type="submit" size="icon" disabled={!newMessage.trim() || sending} className="shrink-0">
