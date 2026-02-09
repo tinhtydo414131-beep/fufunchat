@@ -14,6 +14,7 @@ const Chat = () => {
   const isMobile = useIsMobile();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleSignOut = async () => {
     await signOut();
@@ -32,6 +33,7 @@ const Chat = () => {
             onSelect={setSelectedConversation}
             onNewChat={() => setNewChatOpen(true)}
             onSignOut={handleSignOut}
+            refreshKey={refreshKey}
           />
         </div>
       )}
@@ -50,7 +52,7 @@ const Chat = () => {
       <NewChatDialog
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
-        onConversationCreated={(id) => setSelectedConversation(id)}
+        onConversationCreated={(id) => { setSelectedConversation(id); setRefreshKey((k) => k + 1); }}
       />
     </div>
   );

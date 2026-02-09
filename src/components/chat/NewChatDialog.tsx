@@ -82,25 +82,30 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         }
       }
 
-      // Create new direct conversation
-      const { data: newConv, error: convError } = await supabase
+      // Generate ID client-side to avoid SELECT after INSERT (RLS issue)
+      const convId = crypto.randomUUID();
+
+      // Create new direct conversation (no .select() to avoid SELECT RLS check)
+      const { error: convError } = await supabase
         .from("conversations")
-        .insert({ type: "direct" })
-        .select("id")
-        .single();
+        .insert({ id: convId, type: "direct" });
 
-      if (convError || !newConv) throw convError;
+      if (convError) throw convError;
 
-      // Add both members
-      const { error: memberError } = await supabase.from("conversation_members").insert([
-        { conversation_id: newConv.id, user_id: user.id, role: "admin" },
-        { conversation_id: newConv.id, user_id: otherUserId, role: "admin" },
-      ]);
+      // Add self first (RLS allows user_id = auth.uid())
+      const { error: selfError } = await supabase.from("conversation_members").insert({
+        conversation_id: convId, user_id: user.id, role: "admin",
+      });
+      if (selfError) throw selfError;
 
-      if (memberError) throw memberError;
+      // Then add other user (RLS allows because we're now a member)
+      const { error: otherError } = await supabase.from("conversation_members").insert({
+        conversation_id: convId, user_id: otherUserId, role: "admin",
+      });
+      if (otherError) throw otherError;
 
       toast.success("Cuộc trò chuyện mới đã được tạo ✨");
-      onConversationCreated(newConv.id);
+      onConversationCreated(convId);
       onOpenChange(false);
     } catch (error: any) {
       toast.error("Chưa tạo được — thử lại nhé 💛");

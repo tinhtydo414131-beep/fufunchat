@@ -23,9 +23,10 @@ interface ConversationListProps {
   onSelect: (id: string) => void;
   onNewChat: () => void;
   onSignOut: () => void;
+  refreshKey?: number;
 }
 
-export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut }: ConversationListProps) {
+export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey }: ConversationListProps) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
@@ -34,7 +35,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut }:
   useEffect(() => {
     if (!user) return;
     loadConversations();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const loadConversations = async () => {
     if (!user) return;
