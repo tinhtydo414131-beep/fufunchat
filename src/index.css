@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -113,11 +113,15 @@
   }
 
   [dir="rtl"] body {
-    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Nunito', sans-serif;
+    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Nunito', sans-serif;
   }
 
   [lang="he"] body {
     font-family: 'Noto Sans Hebrew', 'Nunito', sans-serif;
+  }
+
+  [lang="fa"] body {
+    font-family: 'Vazirmatn', 'Nunito', sans-serif;
   }
 
   [dir="rtl"] h1,
@@ -126,7 +130,7 @@
   [dir="rtl"] h4,
   [dir="rtl"] h5,
   [dir="rtl"] h6 {
-    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Quicksand', sans-serif;
+    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Quicksand', sans-serif;
   }
 
   [lang="he"] h1,
@@ -136,6 +140,15 @@
   [lang="he"] h5,
   [lang="he"] h6 {
     font-family: 'Noto Sans Hebrew', 'Quicksand', sans-serif;
+  }
+
+  [lang="fa"] h1,
+  [lang="fa"] h2,
+  [lang="fa"] h3,
+  [lang="fa"] h4,
+  [lang="fa"] h5,
+  [lang="fa"] h6 {
+    font-family: 'Vazirmatn', 'Quicksand', sans-serif;
   }
 
   *,
