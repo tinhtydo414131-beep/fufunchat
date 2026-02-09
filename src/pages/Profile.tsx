@@ -12,13 +12,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Camera, Save, Sparkles, Volume2, VolumeX, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
-import { useUserStatus, STATUS_LABELS, STATUS_EMOJI, type StatusType } from "@/hooks/useUserStatus";
+import { useUserStatus, STATUS_EMOJI, type StatusType } from "@/hooks/useUserStatus";
+import { useTranslation } from "@/hooks/useI18n";
 
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { myStatus, updateStatus } = useUserStatus();
+  const { t } = useTranslation();
   const [statusCustomText, setStatusCustomText] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -65,7 +67,7 @@ const Profile = () => {
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
-      toast.error("Không thể tải ảnh lên — thử lại nhé 💛");
+      toast.error(t("profile.uploadError"));
       setUploading(false);
       return;
     }
@@ -73,7 +75,7 @@ const Profile = () => {
     const { data } = supabase.storage.from("chat-media").getPublicUrl(path);
     setAvatarUrl(data.publicUrl);
     setUploading(false);
-    toast.success("Ảnh đại diện đã được cập nhật ✨");
+    toast.success(t("profile.avatarUpdated"));
   };
 
   const handleSave = async () => {
@@ -90,9 +92,9 @@ const Profile = () => {
       .eq("user_id", user.id);
 
     if (error) {
-      toast.error("Chưa lưu được — thử lại nhé 💛");
+      toast.error(t("profile.saveError"));
     } else {
-      toast.success("Hồ sơ đã được cập nhật ✨");
+      toast.success(t("profile.saved"));
     }
     setSaving(false);
   };
@@ -104,7 +106,7 @@ const Profile = () => {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center space-y-2">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Đang tải hồ sơ... ✨</p>
+          <p className="text-sm text-muted-foreground">{t("profile.loading")}</p>
         </div>
       </div>
     );
@@ -113,17 +115,15 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto p-4 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-xl font-bold font-[Quicksand] flex items-center gap-2">
-            Hồ sơ của bạn <Sparkles className="w-5 h-5 text-primary/60" />
+            {t("profile.title")} <Sparkles className="w-5 h-5 text-primary/60" />
           </h1>
         </div>
 
-        {/* Avatar section */}
         <div className="flex flex-col items-center gap-3">
           <div className="relative group">
             <Avatar className="w-24 h-24 border-4 border-primary/20">
@@ -148,30 +148,29 @@ const Profile = () => {
             />
           </div>
           {uploading && (
-            <p className="text-xs text-muted-foreground">Đang tải ảnh lên...</p>
+            <p className="text-xs text-muted-foreground">{t("profile.uploading")}</p>
           )}
         </div>
 
-        {/* Form */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Thông tin cá nhân</CardTitle>
+            <CardTitle className="text-base">{t("profile.personalInfo")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="displayName">Tên hiển thị</Label>
+              <Label htmlFor="displayName">{t("profile.displayName")}</Label>
               <Input
                 id="displayName"
-                placeholder="Tên bạn muốn mọi người thấy 💛"
+                placeholder={t("profile.displayNamePlaceholder")}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bio">Giới thiệu</Label>
+              <Label htmlFor="bio">{t("profile.bio")}</Label>
               <Textarea
                 id="bio"
-                placeholder="Viết vài dòng về bản thân bạn ✨"
+                placeholder={t("profile.bioPlaceholder")}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
@@ -180,15 +179,14 @@ const Profile = () => {
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full">
               <Save className="w-4 h-4 mr-2" />
-              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+              {saving ? t("profile.saving") : t("profile.save")}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Status */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Trạng thái</CardTitle>
+            <CardTitle className="text-base">{t("profile.status")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -203,16 +201,16 @@ const Profile = () => {
                   }`}
                 >
                   <span>{STATUS_EMOJI[s]}</span>
-                  <span>{STATUS_LABELS[s]}</span>
+                  <span>{t(`status.${s}`)}</span>
                 </button>
               ))}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="customStatus">Trạng thái tùy chỉnh</Label>
+              <Label htmlFor="customStatus">{t("profile.customStatus")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="customStatus"
-                  placeholder="Ví dụ: Đang họp 📋"
+                  placeholder={t("profile.customPlaceholder")}
                   value={statusCustomText}
                   onChange={(e) => setStatusCustomText(e.target.value)}
                   maxLength={50}
@@ -221,28 +219,27 @@ const Profile = () => {
                   size="sm"
                   onClick={() => {
                     updateStatus(myStatus.status, statusCustomText);
-                    toast.success("Đã cập nhật trạng thái ✨");
+                    toast.success(t("profile.statusUpdated"));
                   }}
                 >
-                  Lưu
+                  {t("chat.save")}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Settings */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Cài đặt</CardTitle>
+            <CardTitle className="text-base">{t("profile.settingsTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
                 <div>
-                  <p className="text-sm font-medium">Âm thanh thông báo</p>
-                  <p className="text-xs text-muted-foreground">Phát âm thanh khi có tin nhắn mới</p>
+                  <p className="text-sm font-medium">{t("profile.notifSound")}</p>
+                  <p className="text-xs text-muted-foreground">{t("profile.notifSoundDesc")}</p>
                 </div>
               </div>
               <Switch
@@ -250,7 +247,7 @@ const Profile = () => {
                 onCheckedChange={(checked) => {
                   setSoundEnabled(checked);
                   localStorage.setItem("notification_sound", checked ? "on" : "off");
-                  toast.success(checked ? "Đã bật âm thanh 🔔" : "Đã tắt âm thanh 🔕");
+                  toast.success(checked ? t("profile.soundOn") : t("profile.soundOff"));
                 }}
               />
             </div>
@@ -258,15 +255,15 @@ const Profile = () => {
               <div className="flex items-center gap-3">
                 {theme === "dark" ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
                 <div>
-                  <p className="text-sm font-medium">Chế độ tối</p>
-                  <p className="text-xs text-muted-foreground">Chuyển đổi giao diện sáng / tối</p>
+                  <p className="text-sm font-medium">{t("profile.darkMode")}</p>
+                  <p className="text-xs text-muted-foreground">{t("profile.darkModeDesc")}</p>
                 </div>
               </div>
               <Switch
                 checked={theme === "dark"}
                 onCheckedChange={(checked) => {
                   setTheme(checked ? "dark" : "light");
-                  toast.success(checked ? "Đã bật chế độ tối 🌙" : "Đã bật chế độ sáng ☀️");
+                  toast.success(checked ? t("profile.darkOn") : t("profile.darkOff"));
                 }}
               />
             </div>
