@@ -11,6 +11,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { TypingIndicator } from "./TypingIndicator";
 import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
+import { UserProfilePopup } from "./UserProfilePopup";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
@@ -732,12 +733,19 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 {!isMe && (
                   <div className="w-8 shrink-0">
                     {showAvatar && (
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={msg.sender?.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                          {msg.sender?.display_name?.slice(0, 2).toUpperCase() || "??"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserProfilePopup
+                        userId={msg.sender_id}
+                        displayName={msg.sender?.display_name}
+                        avatarUrl={msg.sender?.avatar_url}
+                        isOnline={isOnline(msg.sender_id)}
+                      >
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={msg.sender?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                            {msg.sender?.display_name?.slice(0, 2).toUpperCase() || "??"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </UserProfilePopup>
                     )}
                   </div>
                 )}
