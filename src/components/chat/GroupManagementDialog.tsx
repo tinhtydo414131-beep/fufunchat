@@ -181,12 +181,12 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
             {isAdmin && (
               <div className="space-y-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder={t("groupMgmt.searchAdd")}
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-9"
+                    className="ps-9"
                   />
                 </div>
                 {searchResults.length > 0 && (
@@ -195,7 +195,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
                       <button
                         key={p.user_id}
                         onClick={() => addMember(p)}
-                        className="w-full flex items-center gap-3 p-2 hover:bg-muted transition-colors text-left"
+                        className="w-full flex items-center gap-3 p-2 hover:bg-muted transition-colors text-start"
                       >
                         <Avatar className="w-7 h-7">
                           <AvatarImage src={p.avatar_url || undefined} />
@@ -226,7 +226,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
                       <p className="text-sm font-medium truncate">
                         {member.display_name}
                         {member.user_id === user?.id && (
-                          <span className="text-xs text-muted-foreground ml-1">{t("groupMgmt.you")}</span>
+                          <span className="text-xs text-muted-foreground ms-1">{t("groupMgmt.you")}</span>
                         )}
                       </p>
                       <div className="flex items-center gap-1">

@@ -759,7 +759,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         >
           <FileText className="w-5 h-5 shrink-0" />
           <span className="text-sm truncate max-w-[180px]">{fileName}</span>
-          <Download className="w-4 h-4 shrink-0 ml-auto" />
+          <Download className="w-4 h-4 shrink-0 ms-auto" />
         </a>
       );
     }
@@ -850,7 +850,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               {convInfo.otherUserName?.slice(0, 2).toUpperCase() || "??"}
             </div>
             {isOnline(convInfo.otherUserId) && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
+              <span className="absolute bottom-0 end-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -874,7 +874,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           <button
             type="button"
             onClick={() => setGroupManagementOpen(true)}
-            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left"
+            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-start"
           >
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
               <Users className="w-5 h-5 text-primary" />
@@ -912,7 +912,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           </button>
           <button
             onClick={() => setShowPinnedBanner(false)}
-            className="ml-auto p-0.5 rounded hover:bg-muted text-muted-foreground"
+            className="ms-auto p-0.5 rounded hover:bg-muted text-muted-foreground"
           >
             <X className="w-3.5 h-3.5" />
           </button>
