@@ -29,7 +29,7 @@ export function getStoredFontSize(): number {
   return stored ? parseInt(stored, 10) : 14;
 }
 
-const SUPPORTED_LANGUAGES = ["vi", "en", "ja", "ko", "zh", "ar", "he", "fa", "tr"];
+const SUPPORTED_LANGUAGES = ["vi", "en", "ja", "ko", "zh", "ar", "he", "fa", "tr", "hi", "es", "pt"];
 
 function detectBrowserLanguage(): string {
   const browserLangs = navigator.languages || [navigator.language];
@@ -88,6 +88,9 @@ const LANGUAGES = [
   { value: "auto", label: "🌐 Auto-detect" },
   { value: "vi", label: "Tiếng Việt 🇻🇳" },
   { value: "en", label: "English 🇺🇸" },
+  { value: "es", label: "Español 🇪🇸" },
+  { value: "pt", label: "Português 🇧🇷" },
+  { value: "hi", label: "हिन्दी 🇮🇳" },
   { value: "ar", label: "العربية 🇸🇦" },
   { value: "he", label: "עברית 🇮🇱" },
   { value: "fa", label: "فارسی 🇮🇷" },
