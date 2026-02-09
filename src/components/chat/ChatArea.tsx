@@ -13,6 +13,7 @@ import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
+import { playNotificationSound } from "@/lib/notificationSound";
 
 interface Message {
   id: string;
@@ -94,6 +95,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
           // Send browser notification for messages from others
           if (newMsg.sender_id !== user?.id) {
+            playNotificationSound();
             const senderName = profile?.display_name || "Ai đó";
             const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "Đã gửi ảnh 📷" : "Đã gửi tệp 📎";
             sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
