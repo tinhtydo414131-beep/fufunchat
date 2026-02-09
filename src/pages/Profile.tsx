@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Camera, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, Save, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 
 const Profile = () => {
@@ -20,6 +21,9 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem("notification_sound") !== "off";
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -172,6 +176,32 @@ const Profile = () => {
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Settings */}
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Cài đặt</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {soundEnabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
+                <div>
+                  <p className="text-sm font-medium">Âm thanh thông báo</p>
+                  <p className="text-xs text-muted-foreground">Phát âm thanh khi có tin nhắn mới</p>
+                </div>
+              </div>
+              <Switch
+                checked={soundEnabled}
+                onCheckedChange={(checked) => {
+                  setSoundEnabled(checked);
+                  localStorage.setItem("notification_sound", checked ? "on" : "off");
+                  toast.success(checked ? "Đã bật âm thanh 🔔" : "Đã tắt âm thanh 🔕");
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
