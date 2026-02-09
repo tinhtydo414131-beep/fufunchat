@@ -804,7 +804,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
   return (
     <div
-      className="flex-1 flex flex-col bg-background relative"
+      className="flex-1 flex flex-col bg-background relative min-h-0"
       onDragEnter={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1035,7 +1035,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                     )}
                   </div>
                 )}
-                <div className={cn("max-w-[70%] space-y-1", isMe && "items-end")}>
+                <div className={cn("max-w-[85%] sm:max-w-[70%] space-y-1", isMe && "items-end")}>
                   {showAvatar && !isMe && (
                     <p className="text-xs text-muted-foreground font-medium pl-1">
                       {msg.sender?.display_name || t("chat.user")}
@@ -1251,7 +1251,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       )}
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="p-3 border-t border-border bg-card">
+      <form onSubmit={sendMessage} className="p-2 sm:p-3 border-t border-border bg-card safe-area-bottom">
         {isRecording ? (
           <div className="flex items-center gap-3">
             <Button
