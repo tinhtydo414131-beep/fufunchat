@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Volume2, Type, Globe } from "lucide-react";
+import { Moon, Sun, Volume2, Type, Globe, Wallpaper, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface SettingsDialogProps {
 const FONT_SIZE_KEY = "chat_font_size";
 const SOUND_KEY = "notification_sound";
 const LANG_KEY = "app_language";
+const WALLPAPER_KEY = "chat_wallpaper";
 
 export function getStoredFontSize(): number {
   const stored = localStorage.getItem(FONT_SIZE_KEY);
@@ -25,6 +27,25 @@ export function getStoredFontSize(): number {
 export function getStoredLanguage(): string {
   return localStorage.getItem(LANG_KEY) || "vi";
 }
+
+export function getStoredWallpaper(): string {
+  return localStorage.getItem(WALLPAPER_KEY) || "none";
+}
+
+export const WALLPAPERS: {
+  id: string;
+  label: string;
+  gradient?: string;
+  size?: string;
+}[] = [
+  { id: "none", label: "Mặc định" },
+  { id: "dots", label: "Chấm bi", gradient: "radial-gradient(circle, hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px)", size: "16px 16px" },
+  { id: "grid", label: "Lưới", gradient: "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)", size: "24px 24px" },
+  { id: "diagonal", label: "Sọc chéo", gradient: "repeating-linear-gradient(45deg, transparent, transparent 10px, hsl(var(--muted-foreground) / 0.04) 10px, hsl(var(--muted-foreground) / 0.04) 11px)" },
+  { id: "bubbles", label: "Bong bóng", gradient: "radial-gradient(circle at 20% 50%, hsl(var(--fun-pink) / 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(var(--fun-mint) / 0.15) 0%, transparent 50%), radial-gradient(circle at 60% 80%, hsl(var(--fun-lavender) / 0.15) 0%, transparent 50%)" },
+  { id: "warm", label: "Ấm áp", gradient: "linear-gradient(135deg, hsl(var(--fun-gold) / 0.12) 0%, hsl(var(--fun-pink) / 0.08) 50%, hsl(var(--fun-lavender) / 0.1) 100%)" },
+  { id: "ocean", label: "Đại dương", gradient: "linear-gradient(180deg, hsl(var(--fun-mint) / 0.1) 0%, hsl(var(--background)) 40%, hsl(var(--fun-lavender) / 0.08) 100%)" },
+];
 
 const LANGUAGES = [
   { value: "vi", label: "Tiếng Việt 🇻🇳" },
@@ -42,6 +63,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   );
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
   const [language, setLanguage] = useState(() => getStoredLanguage());
+  const [wallpaper, setWallpaper] = useState(() => getStoredWallpaper());
 
   useEffect(() => {
     localStorage.setItem(SOUND_KEY, soundEnabled ? "on" : "off");
@@ -56,14 +78,18 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     localStorage.setItem(LANG_KEY, language);
   }, [language]);
 
-  // Set CSS var on mount
+  useEffect(() => {
+    localStorage.setItem(WALLPAPER_KEY, wallpaper);
+    window.dispatchEvent(new CustomEvent("wallpaper-change", { detail: wallpaper }));
+  }, [wallpaper]);
+
   useEffect(() => {
     document.documentElement.style.setProperty("--chat-font-size", `${getStoredFontSize()}px`);
   }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold font-[Quicksand]">
             Cài đặt ⚙️
@@ -115,9 +141,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <Type className="w-5 h-5 text-primary" />
               <div>
                 <Label className="text-sm font-semibold">Cỡ chữ tin nhắn</Label>
-                <p className="text-xs text-muted-foreground">
-                  {fontSize}px
-                </p>
+                <p className="text-xs text-muted-foreground">{fontSize}px</p>
               </div>
             </div>
             <Slider
@@ -131,6 +155,52 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="flex justify-between text-[10px] text-muted-foreground px-1">
               <span>Nhỏ</span>
               <span>Lớn</span>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Wallpaper */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Wallpaper className="w-5 h-5 text-primary" />
+              <div>
+                <Label className="text-sm font-semibold">Hình nền trò chuyện</Label>
+                <p className="text-xs text-muted-foreground">Chọn hình nền cho khung chat</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {WALLPAPERS.map((wp) => {
+                const isSelected = wallpaper === wp.id;
+                const previewStyle: React.CSSProperties = {};
+                if (wp.gradient) {
+                  previewStyle.backgroundImage = wp.gradient;
+                  if (wp.size) previewStyle.backgroundSize = wp.size;
+                }
+                return (
+                  <button
+                    key={wp.id}
+                    onClick={() => setWallpaper(wp.id)}
+                    className={cn(
+                      "relative h-16 rounded-lg border-2 transition-all overflow-hidden",
+                      isSelected
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-border hover:border-muted-foreground/30"
+                    )}
+                    title={wp.label}
+                  >
+                    <div className="absolute inset-0 bg-background" style={previewStyle} />
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                        <Check className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
+                    <span className="absolute bottom-0.5 inset-x-0 text-[9px] text-center text-muted-foreground font-medium">
+                      {wp.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
