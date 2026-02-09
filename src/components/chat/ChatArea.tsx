@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -12,6 +12,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
 import { UserProfilePopup } from "./UserProfilePopup";
+import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
@@ -63,6 +64,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [searchIndex, setSearchIndex] = useState(0);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
@@ -846,6 +848,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={() => setForwardMsg(msg)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title="Chuyển tiếp"
+                        >
+                          <Forward className="w-3.5 h-3.5" />
+                        </button>
                       </>
                     )}
                     <div
@@ -860,13 +869,22 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                       {renderMessageContent(msg, isMe)}
                     </div>
                     {!isMe && !msg.is_deleted && (
-                      <button
-                        onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
-                        className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                        title="Trả lời"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title="Trả lời"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setForwardMsg(msg)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title="Chuyển tiếp"
+                        >
+                          <Forward className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     )}
                   </div>
                   {!msg.is_deleted && (
@@ -1066,6 +1084,14 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           />
         </div>
       )}
+
+      {/* Forward dialog */}
+      <ForwardMessageDialog
+        open={!!forwardMsg}
+        onOpenChange={(open) => { if (!open) setForwardMsg(null); }}
+        message={forwardMsg}
+        currentConversationId={conversationId}
+      />
     </div>
   );
 }
