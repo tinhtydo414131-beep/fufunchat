@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -78,6 +78,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [showPinnedBanner, setShowPinnedBanner] = useState(true);
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [editText, setEditText] = useState("");
+  const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -167,6 +169,33 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     }
   };
 
+  // Load mute status
+  const loadMuteStatus = useCallback(async () => {
+    if (!conversationId || !user) return;
+    const { data } = await supabase
+      .from("conversation_members")
+      .select("muted")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const val = data?.muted ?? false;
+    setIsMuted(val);
+    isMutedRef.current = val;
+  }, [conversationId, user]);
+
+  const toggleMute = async () => {
+    if (!conversationId || !user) return;
+    const newVal = !isMuted;
+    setIsMuted(newVal);
+    isMutedRef.current = newVal;
+    await supabase
+      .from("conversation_members")
+      .update({ muted: newVal })
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id);
+    toast.success(newVal ? "Đã tắt thông báo 🔕" : "Đã bật thông báo 🔔");
+  };
+
   useEffect(() => {
     if (!conversationId) return;
     if (user) markConversationRead(user.id, conversationId);
@@ -175,6 +204,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     loadConvInfo();
     loadReadReceipts();
     loadPinnedMessages();
+    loadMuteStatus();
 
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -195,7 +225,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             .single();
 
           // Send browser notification for messages from others
-          if (newMsg.sender_id !== user?.id) {
+          if (newMsg.sender_id !== user?.id && !isMutedRef.current) {
             playNotificationSound();
             const senderName = profile?.display_name || "Ai đó";
             const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "Đã gửi ảnh 📷" : "Đã gửi tệp 📎";
@@ -776,6 +806,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 : isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
             </p>
           </div>
+          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? "Bật thông báo" : "Tắt thông báo"}>
+            {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
             <Search className="w-4 h-4" />
           </Button>
@@ -797,6 +830,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             </div>
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
+          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? "Bật thông báo" : "Tắt thông báo"}>
+            {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
             <Search className="w-4 h-4" />
           </Button>
