@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface Conversation {
@@ -43,6 +44,7 @@ export function markConversationRead(userId: string, convId: string) {
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -196,6 +198,9 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             )}
             <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
               <Plus className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Chế độ tối/sáng">
+              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={onSignOut} title="Đăng xuất">
               <LogOut className="w-5 h-5" />
