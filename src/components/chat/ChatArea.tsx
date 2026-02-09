@@ -19,7 +19,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
-import { getStoredWallpaper, WALLPAPERS } from "./SettingsDialog";
+import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl } from "./SettingsDialog";
 
 interface Message {
   id: string;
@@ -956,6 +956,14 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3"
         style={(() => {
+          if (isCustomWallpaper(wallpaperId)) {
+            return {
+              backgroundImage: `url(${getCustomWallpaperUrl(wallpaperId)})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundAttachment: "local",
+            } as React.CSSProperties;
+          }
           const wp = WALLPAPERS.find((w) => w.id === wallpaperId);
           if (!wp || !wp.gradient) return {};
           const s: React.CSSProperties = { backgroundImage: wp.gradient };

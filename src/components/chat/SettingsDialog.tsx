@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -6,8 +6,11 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Volume2, Type, Globe, Wallpaper, Check } from "lucide-react";
+import { Moon, Sun, Volume2, Type, Globe, Wallpaper, Check, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -30,6 +33,16 @@ export function getStoredLanguage(): string {
 
 export function getStoredWallpaper(): string {
   return localStorage.getItem(WALLPAPER_KEY) || "none";
+}
+
+/** Returns true if the wallpaper value is a custom uploaded image */
+export function isCustomWallpaper(value: string): boolean {
+  return value.startsWith("custom:");
+}
+
+/** Extracts the URL from a custom wallpaper value */
+export function getCustomWallpaperUrl(value: string): string {
+  return value.slice("custom:".length);
 }
 
 export const WALLPAPERS: {
@@ -55,8 +68,13 @@ const LANGUAGES = [
   { value: "zh", label: "中文 🇨🇳" },
 ];
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [soundEnabled, setSoundEnabled] = useState(
     () => localStorage.getItem(SOUND_KEY) !== "off"
@@ -64,6 +82,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
   const [language, setLanguage] = useState(() => getStoredLanguage());
   const [wallpaper, setWallpaper] = useState(() => getStoredWallpaper());
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(SOUND_KEY, soundEnabled ? "on" : "off");
@@ -86,6 +105,51 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   useEffect(() => {
     document.documentElement.style.setProperty("--chat-font-size", `${getStoredFontSize()}px`);
   }, []);
+
+  const handleUploadWallpaper = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Chỉ hỗ trợ ảnh JPG, PNG, WebP, GIF");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Ảnh phải nhỏ hơn 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${user.id}/wallpaper-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("wallpapers")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("wallpapers")
+        .getPublicUrl(filePath);
+
+      setWallpaper(`custom:${urlData.publicUrl}`);
+      toast.success("Đã tải hình nền lên! 🎨");
+    } catch (err: any) {
+      console.error("Wallpaper upload error:", err);
+      toast.error("Không thể tải ảnh lên — thử lại nhé");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeCustomWallpaper = () => {
+    setWallpaper("none");
+  };
+
+  const hasCustomWallpaper = isCustomWallpaper(wallpaper);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,12 +230,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <Wallpaper className="w-5 h-5 text-primary" />
               <div>
                 <Label className="text-sm font-semibold">Hình nền trò chuyện</Label>
-                <p className="text-xs text-muted-foreground">Chọn hình nền cho khung chat</p>
+                <p className="text-xs text-muted-foreground">Chọn hình nền hoặc tải ảnh lên</p>
               </div>
             </div>
+
+            {/* Preset wallpapers */}
             <div className="grid grid-cols-4 gap-2">
               {WALLPAPERS.map((wp) => {
-                const isSelected = wallpaper === wp.id;
+                const isSelected = !hasCustomWallpaper && wallpaper === wp.id;
                 const previewStyle: React.CSSProperties = {};
                 if (wp.gradient) {
                   previewStyle.backgroundImage = wp.gradient;
@@ -201,7 +267,61 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   </button>
                 );
               })}
+
+              {/* Custom upload tile */}
+              {hasCustomWallpaper ? (
+                <button
+                  className="relative h-16 rounded-lg border-2 border-primary ring-2 ring-primary/20 overflow-hidden"
+                  title="Ảnh tùy chỉnh"
+                >
+                  <img
+                    src={getCustomWallpaperUrl(wallpaper)}
+                    alt="Custom wallpaper"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                    <Check className="w-4 h-4 text-primary" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeCustomWallpaper();
+                    }}
+                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-destructive text-destructive-foreground"
+                    title="Xóa ảnh nền"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </button>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className={cn(
+                    "relative h-16 rounded-lg border-2 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center gap-0.5",
+                    "border-border hover:border-primary/50 hover:bg-primary/5"
+                  )}
+                  title="Tải ảnh lên"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                  )}
+                  <span className="text-[9px] text-muted-foreground font-medium">
+                    {uploading ? "Đang tải..." : "Tải ảnh"}
+                  </span>
+                </button>
+              )}
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleUploadWallpaper}
+            />
           </div>
 
           <Separator />
