@@ -67,6 +67,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [searchIndex, setSearchIndex] = useState(0);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -617,7 +619,51 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div
+      className="flex-1 flex flex-col bg-background relative"
+      onDragEnter={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current++;
+        setIsDragging(true);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current--;
+        if (dragCounterRef.current === 0) setIsDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current = 0;
+        setIsDragging(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+        const maxSize = 20 * 1024 * 1024;
+        const valid = files.filter((f) => {
+          if (f.size > maxSize) {
+            toast.error(`${f.name} quá lớn (tối đa 20MB)`);
+            return false;
+          }
+          return true;
+        });
+        if (valid.length > 0) setPendingFiles((prev) => [...prev, ...valid]);
+      }}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-xl pointer-events-none">
+          <div className="text-center space-y-2">
+            <Paperclip className="w-10 h-10 text-primary mx-auto" />
+            <p className="text-sm font-medium text-primary">Thả tệp vào đây để gửi</p>
+          </div>
+        </div>
+      )}
       {/* Chat Header */}
       {convInfo && convInfo.type === "direct" && convInfo.otherUserId && (
         <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
