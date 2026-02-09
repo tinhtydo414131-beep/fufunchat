@@ -189,21 +189,21 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Sparkles className="w-4 h-4 text-primary/60" />
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title={t("sidebar.profile")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title={t("sidebar.profile")} className="hidden sm:inline-flex">
               <User className="w-5 h-5" />
             </Button>
             {onGlobalSearch && (
-              <Button variant="ghost" size="icon" onClick={onGlobalSearch} title={t("sidebar.globalSearch")}>
+              <Button variant="ghost" size="icon" onClick={onGlobalSearch} title={t("sidebar.globalSearch")} className="hidden sm:inline-flex">
                 <SearchCheck className="w-5 h-5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onNewChat} title={t("sidebar.newChat")}>
+            <Button variant="ghost" size="icon" onClick={onNewChat} title={t("sidebar.newChat")} className="hidden sm:inline-flex">
               <Plus className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("sidebar.settings")}>
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("sidebar.settings")} className="hidden sm:inline-flex">
               <Settings className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onSignOut} title={t("sidebar.signOut")}>
+            <Button variant="ghost" size="icon" onClick={onSignOut} title={t("sidebar.signOut")} className="hidden sm:inline-flex">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>

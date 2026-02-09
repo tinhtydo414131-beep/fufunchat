@@ -102,6 +102,14 @@
     @apply border-border;
   }
 
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
   html {
     transition: color 0.3s ease, background-color 0.3s ease;
   }
