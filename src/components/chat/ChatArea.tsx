@@ -14,6 +14,7 @@ import { MessageReactions } from "./MessageReactions";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { markConversationRead } from "./ConversationList";
 
 interface Message {
   id: string;
@@ -72,6 +73,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
   useEffect(() => {
     if (!conversationId) return;
+    if (user) markConversationRead(user.id, conversationId);
     loadMessages();
     loadConvInfo();
 

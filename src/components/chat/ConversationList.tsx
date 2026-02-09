@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Search, Plus, LogOut, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ interface Conversation {
   other_user?: { display_name: string; avatar_url: string | null; user_id?: string };
   other_user_id?: string;
   last_message?: string;
+  unread_count?: number;
 }
 
 interface ConversationListProps {
@@ -27,6 +29,14 @@ interface ConversationListProps {
   onSignOut: () => void;
   refreshKey?: number;
   isOnline: (userId: string) => boolean;
+}
+
+function getLastReadKey(userId: string, convId: string) {
+  return `lastRead:${userId}:${convId}`;
+}
+
+export function markConversationRead(userId: string, convId: string) {
+  localStorage.setItem(getLastReadKey(userId, convId), new Date().toISOString());
 }
 
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline }: ConversationListProps) {
@@ -94,8 +104,31 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
       })
     );
 
-    setConversations(enriched as Conversation[]);
+    // Count unread messages per conversation
+    const enrichedWithUnread = await Promise.all(
+      (enriched as Conversation[]).map(async (conv) => {
+        const lastRead = localStorage.getItem(getLastReadKey(user.id, conv.id));
+        let query = supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conv.id)
+          .neq("sender_id", user.id);
+        if (lastRead) {
+          query = query.gt("created_at", lastRead);
+        }
+        const { count } = await query;
+        return { ...conv, unread_count: count || 0 };
+      })
+    );
+
+    setConversations(enrichedWithUnread);
     setLoading(false);
+  };
+
+  const handleSelect = (id: string) => {
+    if (user) markConversationRead(user.id, id);
+    setConversations((prev) => prev.map((c) => c.id === id ? { ...c, unread_count: 0 } : c));
+    onSelect(id);
   };
 
   const filtered = conversations.filter((c) => {
@@ -173,7 +206,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
               return (
                 <button
                   key={conv.id}
-                  onClick={() => onSelect(conv.id)}
+                  onClick={() => handleSelect(conv.id)}
                   className={cn(
                     "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
                     "hover:bg-sidebar-accent",
@@ -192,7 +225,14 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{name}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold truncate">{name}</p>
+                      {(conv.unread_count ?? 0) > 0 && (
+                        <Badge className="ml-2 h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground shrink-0">
+                          {conv.unread_count! > 99 ? "99+" : conv.unread_count}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {conv.type === "direct" && conv.other_user_id
                         ? isOnline(conv.other_user_id) ? "Đang hoạt động" : "Ngoại tuyến"
