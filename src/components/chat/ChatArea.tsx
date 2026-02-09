@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -70,6 +70,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set());
+  const [showPinnedBanner, setShowPinnedBanner] = useState(true);
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -111,6 +113,45 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     }
   }, [conversationId, user]);
 
+  const loadPinnedMessages = useCallback(async () => {
+    if (!conversationId) return;
+    const { data } = await supabase
+      .from("pinned_messages")
+      .select("message_id")
+      .eq("conversation_id", conversationId);
+    if (data) {
+      setPinnedMessageIds(new Set(data.map((p) => p.message_id)));
+    }
+  }, [conversationId]);
+
+  const pinMessage = async (msgId: string) => {
+    if (!conversationId || !user) return;
+    const { error } = await supabase.from("pinned_messages").insert({
+      conversation_id: conversationId,
+      message_id: msgId,
+      pinned_by: user.id,
+    });
+    if (error) {
+      toast.error("Không thể ghim tin nhắn");
+    } else {
+      toast.success("Đã ghim tin nhắn 📌");
+    }
+  };
+
+  const unpinMessage = async (msgId: string) => {
+    if (!conversationId) return;
+    const { error } = await supabase
+      .from("pinned_messages")
+      .delete()
+      .eq("conversation_id", conversationId)
+      .eq("message_id", msgId);
+    if (error) {
+      toast.error("Không thể bỏ ghim tin nhắn");
+    } else {
+      toast.success("Đã bỏ ghim tin nhắn");
+    }
+  };
+
   useEffect(() => {
     if (!conversationId) return;
     if (user) markConversationRead(user.id, conversationId);
@@ -118,6 +159,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     loadMessages();
     loadConvInfo();
     loadReadReceipts();
+    loadPinnedMessages();
 
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -192,10 +234,28 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       )
       .subscribe();
 
+    // Listen for pinned messages updates
+    const pinChannel = supabase
+      .channel(`pins:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "pinned_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          loadPinnedMessages();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(typingChannel);
       supabase.removeChannel(readChannel);
+      supabase.removeChannel(pinChannel);
     };
   }, [conversationId, user?.id]);
 
@@ -710,6 +770,31 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         </div>
       )}
 
+      {/* Pinned messages banner */}
+      {pinnedMessageIds.size > 0 && showPinnedBanner && (
+        <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center gap-2">
+          <Pin className="w-3.5 h-3.5 text-primary shrink-0" />
+          <button
+            type="button"
+            className="text-xs text-primary font-medium hover:underline"
+            onClick={() => {
+              const firstPinned = messages.find((m) => pinnedMessageIds.has(m.id));
+              if (firstPinned) {
+                document.getElementById(`msg-${firstPinned.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            }}
+          >
+            {pinnedMessageIds.size} tin nhắn đã ghim 📌
+          </button>
+          <button
+            onClick={() => setShowPinnedBanner(false)}
+            className="ml-auto p-0.5 rounded hover:bg-muted text-muted-foreground"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Search Bar */}
       {searchOpen && (
         <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center gap-2">
@@ -855,6 +940,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         >
                           <Forward className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title={pinnedMessageIds.has(msg.id) ? "Bỏ ghim" : "Ghim tin nhắn"}
+                        >
+                          {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                        </button>
                       </>
                     )}
                     <div
@@ -884,6 +976,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         >
                           <Forward className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title={pinnedMessageIds.has(msg.id) ? "Bỏ ghim" : "Ghim tin nhắn"}
+                        >
+                          {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                        </button>
                       </>
                     )}
                   </div>
@@ -891,6 +990,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                     <MessageReactions messageId={msg.id} isMe={isMe} />
                   )}
                   <div className={cn("flex items-center gap-1 px-1", isMe && "justify-end")}>
+                    {pinnedMessageIds.has(msg.id) && (
+                      <Pin className="w-2.5 h-2.5 text-primary" />
+                    )}
                     <p className="text-[10px] text-muted-foreground">
                       {format(new Date(msg.created_at), "HH:mm")}
                     </p>
