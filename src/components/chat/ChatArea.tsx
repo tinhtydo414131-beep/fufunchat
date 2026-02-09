@@ -4,12 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
 import { TypingIndicator } from "./TypingIndicator";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -26,23 +26,38 @@ interface ChatAreaProps {
   conversationId: string | null;
 }
 
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"];
+
+function isImageUrl(url: string) {
+  const ext = url.split("?")[0].split(".").pop()?.toLowerCase() || "";
+  return IMAGE_EXTENSIONS.includes(ext);
+}
+
+function getFileName(url: string) {
+  const path = url.split("?")[0];
+  const parts = path.split("/");
+  return decodeURIComponent(parts[parts.length - 1] || "file");
+}
+
 export function ChatArea({ conversationId }: ChatAreaProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const lastTypingRef = useRef(0);
 
   useEffect(() => {
     if (!conversationId) return;
     loadMessages();
 
-    // Realtime messages
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -60,16 +75,15 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
             .select("display_name, avatar_url")
             .eq("user_id", newMsg.sender_id)
             .single();
-          
+
           setMessages((prev) => {
-            if (prev.some(m => m.id === newMsg.id)) return prev;
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, { ...newMsg, sender: profile || undefined }];
           });
         }
       )
       .subscribe();
 
-    // Typing indicator broadcast channel
     const typingChannel = supabase
       .channel(`typing:${conversationId}`)
       .on("broadcast", { event: "typing" }, (payload) => {
@@ -80,7 +94,6 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           next.set(userId, displayName);
           return next;
         });
-        // Auto-clear after 3s
         setTimeout(() => {
           setTypingUsers((prev) => {
             const next = new Map(prev);
@@ -119,7 +132,6 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       .limit(100);
 
     if (data) {
-      // Fetch sender profiles
       const senderIds = [...new Set(data.map((m) => m.sender_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -138,33 +150,74 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     setLoading(false);
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !conversationId || !user || sending) return;
+  const uploadFile = async (file: File): Promise<string | null> => {
+    if (!user || !conversationId) return null;
+    const ext = file.name.split(".").pop() || "bin";
+    const path = `${conversationId}/${crypto.randomUUID()}.${ext}`;
 
-    setSending(true);
-    const content = newMessage.trim();
-    setNewMessage("");
-
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      sender_id: user.id,
-      content,
-      type: "text",
-    });
+    const { error } = await supabase.storage
+      .from("chat-media")
+      .upload(path, file, { upsert: false });
 
     if (error) {
-      setNewMessage(content);
+      console.error("Upload error:", error);
+      return null;
     }
 
-    // Update conversation updated_at
-    await supabase
-      .from("conversations")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", conversationId);
+    const { data } = supabase.storage.from("chat-media").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
-    setSending(false);
-    inputRef.current?.focus();
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!newMessage.trim() && pendingFiles.length === 0) || !conversationId || !user || sending) return;
+
+    setSending(true);
+
+    try {
+      // Upload pending files first
+      if (pendingFiles.length > 0) {
+        setUploading(true);
+        for (const file of pendingFiles) {
+          const url = await uploadFile(file);
+          if (!url) {
+            toast.error(`Không thể tải lên ${file.name} 😢`);
+            continue;
+          }
+
+          const isImage = file.type.startsWith("image/");
+          await supabase.from("messages").insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content: url,
+            type: isImage ? "image" : "file",
+          });
+        }
+        setPendingFiles([]);
+        setUploading(false);
+      }
+
+      // Send text message if any
+      if (newMessage.trim()) {
+        const content = newMessage.trim();
+        setNewMessage("");
+        const { error } = await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content,
+          type: "text",
+        });
+        if (error) setNewMessage(content);
+      }
+
+      await supabase
+        .from("conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
   };
 
   const broadcastTyping = useCallback(() => {
@@ -191,6 +244,65 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const handleEmojiSelect = (emoji: string) => {
     setNewMessage((prev) => prev + emoji);
     inputRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    const valid = files.filter((f) => {
+      if (f.size > maxSize) {
+        toast.error(`${f.name} quá lớn (tối đa 20MB)`);
+        return false;
+      }
+      return true;
+    });
+    setPendingFiles((prev) => [...prev, ...valid]);
+    e.target.value = "";
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const renderMessageContent = (msg: Message, isMe: boolean) => {
+    if (msg.is_deleted) {
+      return <span className="italic text-muted-foreground">Tin nhắn đã được thu hồi</span>;
+    }
+
+    if (msg.type === "image" && msg.content) {
+      return (
+        <a href={msg.content} target="_blank" rel="noopener noreferrer" className="block">
+          <img
+            src={msg.content}
+            alt="Ảnh"
+            className="max-w-[260px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
+            loading="lazy"
+          />
+        </a>
+      );
+    }
+
+    if (msg.type === "file" && msg.content) {
+      const fileName = getFileName(msg.content);
+      return (
+        <a
+          href={msg.content}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-xl transition-colors",
+            isMe ? "hover:bg-primary-foreground/10" : "hover:bg-foreground/5"
+          )}
+        >
+          <FileText className="w-5 h-5 shrink-0" />
+          <span className="text-sm truncate max-w-[180px]">{fileName}</span>
+          <Download className="w-4 h-4 shrink-0 ml-auto" />
+        </a>
+      );
+    }
+
+    return msg.content;
   };
 
   const typingNames = Array.from(typingUsers.values());
@@ -225,6 +337,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           messages.map((msg, i) => {
             const isMe = msg.sender_id === user?.id;
             const showAvatar = !isMe && (i === 0 || messages[i - 1]?.sender_id !== msg.sender_id);
+            const isMedia = msg.type === "image" || msg.type === "file";
 
             return (
               <div key={msg.id} className={cn("flex gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
@@ -248,17 +361,14 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                   )}
                   <div
                     className={cn(
-                      "px-4 py-2 rounded-2xl text-sm leading-relaxed",
+                      "rounded-2xl text-sm leading-relaxed",
+                      isMedia ? "p-1" : "px-4 py-2",
                       isMe
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted rounded-bl-md"
                     )}
                   >
-                    {msg.is_deleted ? (
-                      <span className="italic text-muted-foreground">Tin nhắn đã được thu hồi</span>
-                    ) : (
-                      msg.content
-                    )}
+                    {renderMessageContent(msg, isMe)}
                   </div>
                   <p className={cn("text-[10px] text-muted-foreground px-1", isMe && "text-right")}>
                     {format(new Date(msg.created_at), "HH:mm")}
@@ -270,6 +380,35 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
         )}
       </div>
 
+      {/* Pending files preview */}
+      {pendingFiles.length > 0 && (
+        <div className="px-3 pt-2 flex gap-2 flex-wrap border-t border-border bg-card">
+          {pendingFiles.map((file, i) => (
+            <div
+              key={i}
+              className="relative group flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-xs max-w-[200px]"
+            >
+              {file.type.startsWith("image/") ? (
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  className="w-10 h-10 rounded object-cover"
+                />
+              ) : (
+                <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+              )}
+              <span className="truncate">{file.name}</span>
+              <button
+                onClick={() => removePendingFile(i)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Typing indicator */}
       <TypingIndicator names={typingNames} />
 
@@ -277,6 +416,26 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       <form onSubmit={sendMessage} className="p-3 border-t border-border bg-card">
         <div className="flex items-center gap-2">
           <EmojiPicker onSelect={handleEmojiSelect} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground hover:text-primary"
+            onClick={() => imageInputRef.current?.click()}
+            title="Gửi ảnh"
+          >
+            <ImageIcon className="w-5 h-5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground hover:text-primary"
+            onClick={() => fileInputRef.current?.click()}
+            title="Đính kèm file"
+          >
+            <Paperclip className="w-5 h-5" />
+          </Button>
           <Input
             ref={inputRef}
             placeholder="Nhập tin nhắn... ✨"
@@ -284,10 +443,30 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
             onChange={handleInputChange}
             className="bg-muted/50 border-0"
           />
-          <Button type="submit" size="icon" disabled={!newMessage.trim() || sending} className="shrink-0">
+          <Button
+            type="submit"
+            size="icon"
+            disabled={(!newMessage.trim() && pendingFiles.length === 0) || sending || uploading}
+            className="shrink-0"
+          >
             <Send className="w-5 h-5" />
           </Button>
         </div>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
       </form>
     </div>
   );
