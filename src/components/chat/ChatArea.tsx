@@ -48,6 +48,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,14 +273,18 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
 
     if (msg.type === "image" && msg.content) {
       return (
-        <a href={msg.content} target="_blank" rel="noopener noreferrer" className="block">
+        <button
+          type="button"
+          onClick={() => setLightboxUrl(msg.content)}
+          className="block"
+        >
           <img
             src={msg.content}
             alt="Ảnh"
             className="max-w-[260px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
             loading="lazy"
           />
-        </a>
+        </button>
       );
     }
 
@@ -468,6 +473,27 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           onChange={handleFileSelect}
         />
       </form>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/20 hover:bg-background/40 flex items-center justify-center transition-colors"
+          >
+            <X className="w-6 h-6 text-primary-foreground" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Ảnh phóng to"
+            className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl animate-in zoom-in-90 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
