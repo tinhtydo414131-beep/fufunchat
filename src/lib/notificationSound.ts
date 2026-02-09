@@ -2,6 +2,7 @@
 let audioCtx: AudioContext | null = null;
 
 export function playNotificationSound() {
+  if (localStorage.getItem("notification_sound") === "off") return;
   try {
     if (!audioCtx) {
       audioCtx = new AudioContext();
