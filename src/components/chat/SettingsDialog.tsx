@@ -71,6 +71,7 @@ const LANGUAGES = [
   { value: "ar", label: "العربية 🇸🇦" },
   { value: "he", label: "עברית 🇮🇱" },
   { value: "fa", label: "فارسی 🇮🇷" },
+  { value: "tr", label: "Türkçe 🇹🇷" },
   { value: "ja", label: "日本語 🇯🇵" },
   { value: "ko", label: "한국어 🇰🇷" },
   { value: "zh", label: "中文 🇨🇳" },
