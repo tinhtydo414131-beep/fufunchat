@@ -19,6 +19,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI, STATUS_LABELS } from "@/hooks/useUserStatus";
+import { getStoredWallpaper, WALLPAPERS } from "./SettingsDialog";
 
 interface Message {
   id: string;
@@ -86,6 +87,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const isMutedRef = useRef(false);
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [wallpaperId, setWallpaperId] = useState(() => getStoredWallpaper());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +97,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Listen for wallpaper changes from settings
+  useEffect(() => {
+    const handler = (e: Event) => setWallpaperId((e as CustomEvent).detail);
+    window.addEventListener("wallpaper-change", handler);
+    return () => window.removeEventListener("wallpaper-change", handler);
+  }, []);
 
   // Upsert own read receipt when opening conversation
   const updateReadReceipt = useCallback(async () => {
@@ -943,7 +952,17 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        style={(() => {
+          const wp = WALLPAPERS.find((w) => w.id === wallpaperId);
+          if (!wp || !wp.gradient) return {};
+          const s: React.CSSProperties = { backgroundImage: wp.gradient };
+          if (wp.size) s.backgroundSize = wp.size;
+          return s;
+        })()}
+      >
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-8">Đang tải tin nhắn... ✨</div>
         ) : messages.length === 0 ? (
