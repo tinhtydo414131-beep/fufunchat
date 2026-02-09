@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Mail, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { format } from "date-fns";
+import { STATUS_EMOJI, STATUS_LABELS, type StatusType } from "@/hooks/useUserStatus";
 
 interface UserProfilePopupProps {
   userId: string;
@@ -20,8 +21,14 @@ interface ProfileData {
   created_at: string;
 }
 
+interface UserStatusData {
+  status: StatusType;
+  custom_text: string;
+}
+
 export function UserProfilePopup({ userId, displayName, avatarUrl, isOnline, children }: UserProfilePopupProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [userStatus, setUserStatus] = useState<UserStatusData | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -31,14 +38,25 @@ export function UserProfilePopup({ userId, displayName, avatarUrl, isOnline, chi
       .select("display_name, avatar_url, bio, created_at")
       .eq("user_id", userId)
       .single()
+      .then(({ data }) => { if (data) setProfile(data); });
+
+    supabase
+      .from("user_statuses")
+      .select("status, custom_text")
+      .eq("user_id", userId)
+      .maybeSingle()
       .then(({ data }) => {
-        if (data) setProfile(data);
+        if (data) setUserStatus({ status: data.status as StatusType, custom_text: data.custom_text || "" });
       });
   }, [open, userId]);
 
   const name = profile?.display_name || displayName || "Người dùng";
   const avatar = profile?.avatar_url || avatarUrl;
   const initials = name.slice(0, 2).toUpperCase();
+
+  const statusLabel = userStatus
+    ? `${STATUS_EMOJI[userStatus.status]} ${STATUS_LABELS[userStatus.status]}`
+    : isOnline ? "🟢 Đang hoạt động" : "⚫ Ngoại tuyến";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -72,10 +90,11 @@ export function UserProfilePopup({ userId, displayName, avatarUrl, isOnline, chi
         <div className="px-4 pt-2 pb-4 space-y-2">
           <div>
             <p className="font-semibold text-sm">{name}</p>
-            <p className="text-xs text-muted-foreground">
-              {isOnline ? "Đang hoạt động" : "Ngoại tuyến"}
-            </p>
+            <p className="text-xs text-muted-foreground">{statusLabel}</p>
           </div>
+          {userStatus?.custom_text && (
+            <p className="text-xs text-muted-foreground italic">"{userStatus.custom_text}"</p>
+          )}
           {profile?.bio && (
             <p className="text-xs text-muted-foreground leading-relaxed">{profile.bio}</p>
           )}
