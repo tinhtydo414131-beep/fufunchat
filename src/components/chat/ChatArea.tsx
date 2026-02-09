@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -21,6 +21,7 @@ interface Message {
   type: string;
   is_deleted: boolean;
   created_at: string;
+  reply_to: string | null;
   sender?: { display_name: string; avatar_url: string | null };
 }
 
@@ -53,6 +54,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number } | null>(null);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -215,6 +217,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
             sender_id: user.id,
             content: url,
             type: isImage ? "image" : "file",
+            reply_to: replyTo?.id || null,
           });
         }
         setPendingFiles([]);
@@ -230,6 +233,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           sender_id: user.id,
           content,
           type: "text",
+          reply_to: replyTo?.id || null,
         });
         if (error) setNewMessage(content);
       }
@@ -240,6 +244,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
         .eq("id", conversationId);
     } finally {
       setSending(false);
+      setReplyTo(null);
       inputRef.current?.focus();
     }
   };
@@ -405,16 +410,57 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                       {msg.sender?.display_name || "Người dùng"}
                     </p>
                   )}
-                  <div
-                    className={cn(
-                      "rounded-2xl text-sm leading-relaxed",
-                      isMedia ? "p-1" : "px-4 py-2",
-                      isMe
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted rounded-bl-md"
+                  {/* Replied-to preview */}
+                  {msg.reply_to && (() => {
+                    const repliedMsg = messages.find((m) => m.id === msg.reply_to);
+                    if (!repliedMsg) return null;
+                    return (
+                      <div className={cn(
+                        "text-[11px] px-3 py-1.5 rounded-xl border-l-2 border-primary/40 bg-muted/60 max-w-full truncate",
+                        isMe && "text-right"
+                      )}>
+                        <span className="font-semibold text-primary/70">
+                          {repliedMsg.sender?.display_name || "Người dùng"}
+                        </span>
+                        <p className="truncate text-muted-foreground">
+                          {repliedMsg.is_deleted ? "Tin nhắn đã thu hồi" :
+                            repliedMsg.type === "image" ? "📷 Ảnh" :
+                            repliedMsg.type === "file" ? "📎 File" :
+                            repliedMsg.content || ""}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                  <div className="flex items-center gap-1">
+                    {isMe && (
+                      <button
+                        onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                        className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                        title="Trả lời"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  >
-                    {renderMessageContent(msg, isMe)}
+                    <div
+                      className={cn(
+                        "rounded-2xl text-sm leading-relaxed",
+                        isMedia ? "p-1" : "px-4 py-2",
+                        isMe
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted rounded-bl-md"
+                      )}
+                    >
+                      {renderMessageContent(msg, isMe)}
+                    </div>
+                    {!isMe && (
+                      <button
+                        onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                        className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                        title="Trả lời"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   {!msg.is_deleted && (
                     <MessageReactions messageId={msg.id} isMe={isMe} />
@@ -460,6 +506,23 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
 
       {/* Typing indicator */}
       <TypingIndicator names={typingNames} />
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="px-3 py-2 border-t border-border bg-card flex items-center gap-2">
+          <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
+            <p className="text-xs font-semibold text-primary truncate">
+              {replyTo.sender?.display_name || "Người dùng"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {replyTo.type === "image" ? "📷 Ảnh" : replyTo.type === "file" ? "📎 File" : replyTo.content || ""}
+            </p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-3 border-t border-border bg-card">
