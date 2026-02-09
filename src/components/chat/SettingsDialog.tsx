@@ -42,10 +42,14 @@ function detectBrowserLanguage(): string {
 
 export function getStoredLanguage(): string {
   const stored = localStorage.getItem(LANG_KEY);
-  if (stored) return stored;
-  const detected = detectBrowserLanguage();
-  localStorage.setItem(LANG_KEY, detected);
-  return detected;
+  if (stored === "auto" || !stored) {
+    return detectBrowserLanguage();
+  }
+  return stored;
+}
+
+export function getStoredLanguageRaw(): string {
+  return localStorage.getItem(LANG_KEY) || "auto";
 }
 
 export function getStoredWallpaper(): string {
@@ -81,6 +85,7 @@ export const WALLPAPERS: {
 ];
 
 const LANGUAGES = [
+  { value: "auto", label: "🌐 Auto-detect" },
   { value: "vi", label: "Tiếng Việt 🇻🇳" },
   { value: "en", label: "English 🇺🇸" },
   { value: "ar", label: "العربية 🇸🇦" },
@@ -105,7 +110,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     () => localStorage.getItem(SOUND_KEY) !== "off"
   );
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
-  const [language, setLanguage] = useState(() => getStoredLanguage());
+  const [language, setLanguage] = useState(() => getStoredLanguageRaw());
   const [wallpaper, setWallpaper] = useState(() => getStoredWallpaper());
   const [uploading, setUploading] = useState(false);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(() => getStoredWallpaperOpacity());
@@ -121,6 +126,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   useEffect(() => {
     localStorage.setItem(LANG_KEY, language);
+    // Dispatch storage-like event so I18nProvider picks up the resolved language
+    window.dispatchEvent(new Event("storage"));
   }, [language]);
 
   useEffect(() => {
