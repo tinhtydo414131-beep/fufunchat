@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2 } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -56,8 +56,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string } | null>(null);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchIndex, setSearchIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastTypingRef = useRef(0);
@@ -122,6 +127,36 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Search logic
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setSearchIndex(0);
+      return;
+    }
+    const q = searchQuery.toLowerCase();
+    const results = messages
+      .filter((m) => !m.is_deleted && m.type === "text" && m.content?.toLowerCase().includes(q))
+      .map((m) => m.id);
+    setSearchResults(results);
+    setSearchIndex(results.length > 0 ? results.length - 1 : 0);
+  }, [searchQuery, messages]);
+
+  useEffect(() => {
+    if (searchResults.length > 0 && searchResults[searchIndex]) {
+      document.getElementById(`msg-${searchResults[searchIndex]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [searchIndex, searchResults]);
+
+  const toggleSearch = () => {
+    setSearchOpen((prev) => {
+      if (!prev) setTimeout(() => searchInputRef.current?.focus(), 100);
+      return !prev;
+    });
+    setSearchQuery("");
+    setSearchResults([]);
+  };
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -418,29 +453,77 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{convInfo.otherUserName || "Người dùng"}</p>
             <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
               {isOnline(convInfo.otherUserId) ? "Đang hoạt động" : "Ngoại tuyến"}
             </p>
           </div>
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
+            <Search className="w-4 h-4" />
+          </Button>
         </div>
       )}
       {convInfo && convInfo.type === "group" && (
-        <button
-          type="button"
-          onClick={() => setGroupManagementOpen(true)}
-          className="w-full px-4 py-3 border-b border-border bg-card flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
-        >
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate">{convInfo.name || "Nhóm"}</p>
-            <p className="text-xs text-muted-foreground">{convInfo.memberCount} thành viên</p>
-          </div>
-          <Settings className="w-4 h-4 text-muted-foreground" />
-        </button>
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setGroupManagementOpen(true)}
+            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left"
+          >
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold truncate">{convInfo.name || "Nhóm"}</p>
+              <p className="text-xs text-muted-foreground">{convInfo.memberCount} thành viên</p>
+            </div>
+            <Settings className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title="Tìm kiếm tin nhắn">
+            <Search className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Search Bar */}
+      {searchOpen && (
+        <div className="px-4 py-2 border-b border-border bg-muted/30 flex items-center gap-2">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <Input
+            ref={searchInputRef}
+            placeholder="Tìm kiếm tin nhắn..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 text-sm"
+          />
+          {searchResults.length > 0 && (
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {searchIndex + 1}/{searchResults.length}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            onClick={() => setSearchIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1))}
+            disabled={searchResults.length === 0}
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            onClick={() => setSearchIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0))}
+            disabled={searchResults.length === 0}
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={toggleSearch}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       )}
 
       {/* Messages */}
@@ -456,9 +539,16 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             const isMe = msg.sender_id === user?.id;
             const showAvatar = !isMe && (i === 0 || messages[i - 1]?.sender_id !== msg.sender_id);
             const isMedia = msg.type === "image" || msg.type === "file";
+            const isSearchMatch = searchResults.includes(msg.id);
+            const isCurrentMatch = searchResults[searchIndex] === msg.id;
 
             return (
-              <div key={msg.id} className={cn("flex gap-2 group/msg", isMe ? "flex-row-reverse" : "flex-row")}>
+              <div id={`msg-${msg.id}`} key={msg.id} className={cn(
+                "flex gap-2 group/msg transition-colors duration-300",
+                isMe ? "flex-row-reverse" : "flex-row",
+                isCurrentMatch && "bg-primary/20 rounded-xl",
+                isSearchMatch && !isCurrentMatch && "bg-primary/5 rounded-xl"
+              )}>
                 {!isMe && (
                   <div className="w-8 shrink-0">
                     {showAvatar && (
