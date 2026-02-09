@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
@@ -12,6 +13,7 @@ const Chat = () => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { isOnline } = useOnlineUsers();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -34,6 +36,7 @@ const Chat = () => {
             onNewChat={() => setNewChatOpen(true)}
             onSignOut={handleSignOut}
             refreshKey={refreshKey}
+            isOnline={isOnline}
           />
         </div>
       )}
@@ -46,7 +49,7 @@ const Chat = () => {
               </Button>
             </div>
           )}
-          <ChatArea conversationId={selectedConversation} />
+          <ChatArea conversationId={selectedConversation} isOnline={isOnline} />
         </div>
       )}
       <NewChatDialog

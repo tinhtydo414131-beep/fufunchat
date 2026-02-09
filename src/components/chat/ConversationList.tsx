@@ -15,7 +15,8 @@ interface Conversation {
   name: string | null;
   avatar_url: string | null;
   updated_at: string;
-  other_user?: { display_name: string; avatar_url: string | null };
+  other_user?: { display_name: string; avatar_url: string | null; user_id?: string };
+  other_user_id?: string;
   last_message?: string;
 }
 
@@ -25,9 +26,10 @@ interface ConversationListProps {
   onNewChat: () => void;
   onSignOut: () => void;
   refreshKey?: number;
+  isOnline: (userId: string) => boolean;
 }
 
-export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey }: ConversationListProps) {
+export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -85,8 +87,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
               .select("display_name, avatar_url")
               .eq("user_id", members[0].user_id)
               .single();
-
-            return { ...conv, other_user: profile || undefined };
+            return { ...conv, other_user: profile || undefined, other_user_id: members[0].user_id };
           }
         }
         return conv;
@@ -179,16 +180,23 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                     selectedId === conv.id && "bg-sidebar-accent"
                   )}
                 >
-                  <Avatar className="w-10 h-10 shrink-0">
-                    <AvatarImage src={avatarUrl || undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                      {getInitials(name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="w-10 h-10 shrink-0">
+                      <AvatarImage src={avatarUrl || undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                        {getInitials(name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conv.type === "direct" && conv.other_user_id && isOnline(conv.other_user_id) && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-sidebar-background" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {conv.type === "group" ? "Nhóm" : "Trò chuyện"}
+                      {conv.type === "direct" && conv.other_user_id
+                        ? isOnline(conv.other_user_id) ? "Đang hoạt động" : "Ngoại tuyến"
+                        : conv.type === "group" ? "Nhóm" : "Trò chuyện"}
                     </p>
                   </div>
                 </button>
