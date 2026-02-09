@@ -5,6 +5,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
+import { GlobalSearchDialog } from "@/components/chat/GlobalSearchDialog";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
 
   useEffect(() => {
     requestPermission();
@@ -62,6 +64,11 @@ const Chat = () => {
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
         onConversationCreated={(id) => { setSelectedConversation(id); setRefreshKey((k) => k + 1); }}
+      />
+      <GlobalSearchDialog
+        open={globalSearchOpen}
+        onOpenChange={setGlobalSearchOpen}
+        onSelectConversation={(id) => { setSelectedConversation(id); }}
       />
     </div>
   );
