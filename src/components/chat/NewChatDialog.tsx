@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, MessageCircle, Users, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface Profile {
   user_id: string;
@@ -24,12 +25,11 @@ interface NewChatDialogProps {
 
 export function NewChatDialog({ open, onOpenChange, onConversationCreated }: NewChatDialogProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<Profile[]>([]);
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
-
-  // Group chat state
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<Profile[]>([]);
   const [groupSearch, setGroupSearch] = useState("");
@@ -128,12 +128,12 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
       });
       if (otherError) throw otherError;
 
-      toast.success("Cuộc trò chuyện mới đã được tạo ✨");
+      toast.success(t("newChat.created"));
       onConversationCreated(convId);
       onOpenChange(false);
       resetState();
     } catch (error: any) {
-      toast.error("Chưa tạo được — thử lại nhé 💛");
+      toast.error(t("newChat.createError"));
     } finally {
       setCreating(false);
     }
@@ -158,13 +158,11 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         .insert({ id: convId, type: "group", name: groupName.trim() });
       if (convError) throw convError;
 
-      // Add self first
       const { error: selfError } = await supabase.from("conversation_members").insert({
         conversation_id: convId, user_id: user.id, role: "admin",
       });
       if (selfError) throw selfError;
 
-      // Add each member sequentially (RLS requires creator to be member first)
       for (const member of selectedMembers) {
         const { error } = await supabase.from("conversation_members").insert({
           conversation_id: convId, user_id: member.user_id, role: "member",
@@ -174,12 +172,12 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         }
       }
 
-      toast.success(`Nhóm "${groupName.trim()}" đã được tạo ✨`);
+      toast.success(`"${groupName.trim()}" ${t("newChat.groupCreated")}`);
       onConversationCreated(convId);
       onOpenChange(false);
       resetState();
     } catch (error: any) {
-      toast.error("Chưa tạo nhóm được — thử lại nhé 💛");
+      toast.error(t("newChat.groupCreateError"));
     } finally {
       setCreating(false);
     }
@@ -193,26 +191,25 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-primary" />
-            Trò chuyện mới ✨
+            {t("newChat.title")}
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="direct" className="w-full">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="direct" className="gap-1.5">
-              <MessageCircle className="w-4 h-4" /> Cá nhân
+              <MessageCircle className="w-4 h-4" /> {t("newChat.direct")}
             </TabsTrigger>
             <TabsTrigger value="group" className="gap-1.5">
-              <Users className="w-4 h-4" /> Nhóm
+              <Users className="w-4 h-4" /> {t("newChat.groupTab")}
             </TabsTrigger>
           </TabsList>
 
-          {/* Direct Chat Tab */}
           <TabsContent value="direct" className="space-y-4 mt-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm người dùng..."
+                placeholder={t("newChat.searchUsers")}
                 value={search}
                 onChange={(e) => searchUsers(e.target.value)}
                 className="pl-9"
@@ -221,10 +218,10 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
             </div>
             <div className="max-h-60 overflow-y-auto space-y-1">
               {searching ? (
-                <p className="text-center text-sm text-muted-foreground py-4">Đang tìm kiếm... ✨</p>
+                <p className="text-center text-sm text-muted-foreground py-4">{t("newChat.searching")}</p>
               ) : results.length === 0 && search.length >= 2 ? (
                 <p className="text-center text-sm text-muted-foreground py-4">
-                  Chưa tìm thấy ai — thử từ khóa khác nhé 💛
+                  {t("newChat.noResults")}
                 </p>
               ) : (
                 results.map((profile) => (
@@ -247,15 +244,13 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
             </div>
           </TabsContent>
 
-          {/* Group Chat Tab */}
           <TabsContent value="group" className="space-y-4 mt-4">
             <Input
-              placeholder="Tên nhóm ✨"
+              placeholder={t("newChat.groupName")}
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
             />
 
-            {/* Selected members chips */}
             {selectedMembers.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {selectedMembers.map((member) => (
@@ -275,7 +270,7 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm và thêm thành viên..."
+                placeholder={t("newChat.addMembers")}
                 value={groupSearch}
                 onChange={(e) => searchUsers(e.target.value, true)}
                 className="pl-9"
@@ -284,10 +279,10 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
 
             <div className="max-h-44 overflow-y-auto space-y-1">
               {groupSearching ? (
-                <p className="text-center text-sm text-muted-foreground py-4">Đang tìm kiếm... ✨</p>
+                <p className="text-center text-sm text-muted-foreground py-4">{t("newChat.searching")}</p>
               ) : groupResults.length === 0 && groupSearch.length >= 2 ? (
                 <p className="text-center text-sm text-muted-foreground py-4">
-                  Chưa tìm thấy ai 💛
+                  {t("newChat.noGroupResults")}
                 </p>
               ) : (
                 groupResults.map((profile) => {
@@ -321,11 +316,11 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
               className="w-full"
             >
               <Users className="w-4 h-4 mr-2" />
-              {creating ? "Đang tạo..." : `Tạo nhóm (${selectedMembers.length} thành viên)`}
+              {creating ? t("newChat.creating") : `${t("newChat.createGroup")} (${selectedMembers.length} ${t("newChat.memberCount")})`}
             </Button>
             {selectedMembers.length < 2 && (
               <p className="text-xs text-muted-foreground text-center">
-                Cần ít nhất 2 thành viên để tạo nhóm 💛
+                {t("newChat.minMembers")}
               </p>
             )}
           </TabsContent>

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Search, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface SearchResult {
   id: string;
@@ -29,6 +30,7 @@ interface GlobalSearchDialogProps {
 
 export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }: GlobalSearchDialogProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -58,7 +60,6 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
     setSearching(true);
 
     try {
-      // Get user's conversation IDs
       const { data: memberships } = await supabase
         .from("conversation_members")
         .select("conversation_id")
@@ -72,7 +73,6 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
 
       const convIds = memberships.map((m) => m.conversation_id);
 
-      // Search messages
       const { data: messages } = await supabase
         .from("messages")
         .select("id, content, created_at, conversation_id, sender_id")
@@ -89,7 +89,6 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
         return;
       }
 
-      // Get sender profiles
       const senderIds = [...new Set(messages.map((m) => m.sender_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -97,14 +96,12 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
         .in("user_id", senderIds);
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.display_name]) || []);
 
-      // Get conversation names
       const uniqueConvIds = [...new Set(messages.map((m) => m.conversation_id))];
       const { data: convs } = await supabase
         .from("conversations")
         .select("id, name, type")
         .in("id", uniqueConvIds);
 
-      // For direct convos, get other user name
       const directConvIds = convs?.filter((c) => c.type === "direct").map((c) => c.id) || [];
       let directNameMap = new Map<string, string>();
       if (directConvIds.length > 0) {
@@ -130,7 +127,7 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
       const convNameMap = new Map(
         convs?.map((c) => [
           c.id,
-          c.type === "direct" ? directNameMap.get(c.id) || "Trò chuyện" : c.name || "Nhóm",
+          c.type === "direct" ? directNameMap.get(c.id) || t("sidebar.chat") : c.name || t("sidebar.group"),
         ]) || []
       );
 
@@ -140,8 +137,8 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
           content: m.content || "",
           created_at: m.created_at,
           conversation_id: m.conversation_id,
-          sender_name: profileMap.get(m.sender_id) || "Người dùng",
-          conv_name: convNameMap.get(m.conversation_id) || "Trò chuyện",
+          sender_name: profileMap.get(m.sender_id) || t("chat.user"),
+          conv_name: convNameMap.get(m.conversation_id) || t("sidebar.chat"),
         }))
       );
     } catch {
@@ -156,7 +153,6 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
     onOpenChange(false);
   };
 
-  // Highlight matching text
   const highlightMatch = (text: string, q: string) => {
     if (!q) return text;
     const idx = text.toLowerCase().indexOf(q.toLowerCase());
@@ -179,7 +175,7 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="w-4 h-4" />
-            Tìm kiếm tin nhắn
+            {t("globalSearch.title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -187,7 +183,7 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             ref={inputRef}
-            placeholder="Nhập từ khóa để tìm..."
+            placeholder={t("globalSearch.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9"
@@ -202,7 +198,7 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
           )}
           {!searching && query.trim() && results.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Không tìm thấy kết quả 💛
+              {t("globalSearch.noResults")}
             </p>
           )}
           {!searching &&
@@ -223,7 +219,7 @@ export function GlobalSearchDialog({ open, onOpenChange, onSelectConversation }:
                     </span>
                   </div>
                   <p className="text-sm truncate">{highlightMatch(r.content, query)}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">trong {r.conv_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{t("globalSearch.in")} {r.conv_name}</p>
                 </div>
               </button>
             ))}

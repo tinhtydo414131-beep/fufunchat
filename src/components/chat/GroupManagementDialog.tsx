@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserMinus, UserPlus, Pencil, Check, X, Search, Crown, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/hooks/useI18n";
 
 interface Member {
   id: string;
@@ -33,6 +34,7 @@ interface GroupManagementDialogProps {
 
 export function GroupManagementDialog({ open, onOpenChange, conversationId, onUpdated }: GroupManagementDialogProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [members, setMembers] = useState<Member[]>([]);
   const [groupName, setGroupName] = useState("");
   const [editingName, setEditingName] = useState(false);
@@ -79,7 +81,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
       const enriched = memberData.map((m) => ({
         ...m,
-        display_name: profileMap.get(m.user_id)?.display_name || "Người dùng",
+        display_name: profileMap.get(m.user_id)?.display_name || t("chat.user"),
         avatar_url: profileMap.get(m.user_id)?.avatar_url || null,
       }));
       setMembers(enriched);
@@ -98,11 +100,11 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
       .eq("id", conversationId);
 
     if (error) {
-      toast.error("Không thể đổi tên nhóm");
+      toast.error(t("groupMgmt.renameError"));
     } else {
       setGroupName(newName.trim());
       setEditingName(false);
-      toast.success("Đã đổi tên nhóm ✨");
+      toast.success(t("groupMgmt.renamed"));
       onUpdated();
     }
   };
@@ -131,9 +133,9 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
       .insert({ conversation_id: conversationId, user_id: profile.user_id, role: "member" });
 
     if (error) {
-      toast.error("Không thể thêm thành viên");
+      toast.error(t("groupMgmt.addError"));
     } else {
-      toast.success(`Đã thêm ${profile.display_name} ✨`);
+      toast.success(`${t("groupMgmt.added")} ${profile.display_name} ✨`);
       setSearchQuery("");
       setSearchResults([]);
       loadMembers();
@@ -143,7 +145,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
 
   const removeMember = async (member: Member) => {
     if (member.user_id === user?.id) {
-      toast.error("Bạn không thể xóa chính mình");
+      toast.error(t("groupMgmt.cantRemoveSelf"));
       return;
     }
     const { error } = await supabase
@@ -152,9 +154,9 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
       .eq("id", member.id);
 
     if (error) {
-      toast.error("Không thể xóa thành viên");
+      toast.error(t("groupMgmt.removeError"));
     } else {
-      toast.success(`Đã xóa ${member.display_name}`);
+      toast.success(`${t("groupMgmt.removed")} ${member.display_name}`);
       loadMembers();
       onUpdated();
     }
@@ -166,23 +168,22 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-lg">Quản lý nhóm</DialogTitle>
+          <DialogTitle className="text-lg">{t("groupMgmt.title")}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="members" className="mt-2">
           <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="members">Thành viên ({members.length})</TabsTrigger>
-            <TabsTrigger value="settings">Cài đặt</TabsTrigger>
+            <TabsTrigger value="members">{t("groupMgmt.membersTab")} ({members.length})</TabsTrigger>
+            <TabsTrigger value="settings">{t("groupMgmt.settingsTab")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="members" className="space-y-3 mt-3">
-            {/* Add member search */}
             {isAdmin && (
               <div className="space-y-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Tìm người để thêm..."
+                    placeholder={t("groupMgmt.searchAdd")}
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                     className="pl-9"
@@ -211,7 +212,6 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
               </div>
             )}
 
-            {/* Member list */}
             <ScrollArea className="max-h-64">
               <div className="space-y-1">
                 {members.map((member) => (
@@ -226,13 +226,13 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
                       <p className="text-sm font-medium truncate">
                         {member.display_name}
                         {member.user_id === user?.id && (
-                          <span className="text-xs text-muted-foreground ml-1">(bạn)</span>
+                          <span className="text-xs text-muted-foreground ml-1">{t("groupMgmt.you")}</span>
                         )}
                       </p>
                       <div className="flex items-center gap-1">
                         {member.role === "admin" && (
                           <span className="text-[10px] text-primary flex items-center gap-0.5">
-                            <Crown className="w-3 h-3" /> Quản trị
+                            <Crown className="w-3 h-3" /> {t("groupMgmt.admin")}
                           </span>
                         )}
                       </div>
@@ -255,7 +255,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
 
           <TabsContent value="settings" className="space-y-4 mt-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tên nhóm</label>
+              <label className="text-sm font-medium">{t("groupMgmt.groupName")}</label>
               {editingName ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -274,7 +274,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm flex-1">{groupName || "Chưa đặt tên"}</p>
+                  <p className="text-sm flex-1">{groupName || t("groupMgmt.noName")}</p>
                   {isAdmin && (
                     <Button size="icon" variant="ghost" onClick={() => setEditingName(true)}>
                       <Pencil className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function GroupManagementDialog({ open, onOpenChange, conversationId, onUp
             </div>
 
             {!isAdmin && (
-              <p className="text-xs text-muted-foreground">Chỉ quản trị viên mới có thể thay đổi cài đặt nhóm.</p>
+              <p className="text-xs text-muted-foreground">{t("groupMgmt.adminOnly")}</p>
             )}
           </TabsContent>
         </Tabs>
