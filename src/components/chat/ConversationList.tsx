@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, Sparkles, User } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Conversation {
@@ -29,6 +29,7 @@ interface ConversationListProps {
   onSignOut: () => void;
   refreshKey?: number;
   isOnline: (userId: string) => boolean;
+  onGlobalSearch?: () => void;
 }
 
 function getLastReadKey(userId: string, convId: string) {
@@ -39,7 +40,7 @@ export function markConversationRead(userId: string, convId: string) {
   localStorage.setItem(getLastReadKey(userId, convId), new Date().toISOString());
 }
 
-export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline }: ConversationListProps) {
+export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -188,6 +189,11 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title="Hồ sơ">
               <User className="w-5 h-5" />
             </Button>
+            {onGlobalSearch && (
+              <Button variant="ghost" size="icon" onClick={onGlobalSearch} title="Tìm kiếm toàn bộ">
+                <SearchCheck className="w-5 h-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
               <Plus className="w-5 h-5" />
             </Button>
