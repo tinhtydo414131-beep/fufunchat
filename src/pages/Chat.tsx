@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
+import { useNotifications } from "@/hooks/useNotifications";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
@@ -14,9 +15,14 @@ const Chat = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { isOnline } = useOnlineUsers();
+  const { requestPermission } = useNotifications();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    requestPermission();
+  }, [requestPermission]);
 
   const handleSignOut = async () => {
     await signOut();
