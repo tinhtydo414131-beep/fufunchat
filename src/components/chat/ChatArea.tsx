@@ -1067,12 +1067,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                     )}
                     <div
                       className={cn(
-                        "rounded-2xl text-sm leading-relaxed",
+                        "rounded-2xl leading-relaxed",
                         isMedia ? "p-1" : "px-4 py-2",
                         isMe
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-muted rounded-bl-md"
                       )}
+                      style={{ fontSize: "var(--chat-font-size, 14px)" }}
                     >
                       {editingMsg?.id === msg.id ? (
                         <div className="flex items-center gap-1.5 min-w-[160px]">
