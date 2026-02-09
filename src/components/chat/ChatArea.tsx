@@ -64,6 +64,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [searchIndex, setSearchIndex] = useState(0);
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -71,11 +72,42 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastTypingRef = useRef(0);
 
+  // Upsert own read receipt when opening conversation
+  const updateReadReceipt = useCallback(async () => {
+    if (!conversationId || !user) return;
+    const now = new Date().toISOString();
+    await supabase
+      .from("message_reads")
+      .upsert(
+        { conversation_id: conversationId, user_id: user.id, last_read_at: now },
+        { onConflict: "conversation_id,user_id" }
+      );
+  }, [conversationId, user]);
+
+  // Load other users' read receipts
+  const loadReadReceipts = useCallback(async () => {
+    if (!conversationId || !user) return;
+    const { data } = await supabase
+      .from("message_reads")
+      .select("user_id, last_read_at")
+      .eq("conversation_id", conversationId)
+      .neq("user_id", user.id);
+    if (data && data.length > 0) {
+      // Use the latest read timestamp among other users
+      const latest = data.reduce((a, b) => a.last_read_at > b.last_read_at ? a : b);
+      setOtherReadAt(latest.last_read_at);
+    } else {
+      setOtherReadAt(null);
+    }
+  }, [conversationId, user]);
+
   useEffect(() => {
     if (!conversationId) return;
     if (user) markConversationRead(user.id, conversationId);
+    updateReadReceipt();
     loadMessages();
     loadConvInfo();
+    loadReadReceipts();
 
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -101,6 +133,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             const senderName = profile?.display_name || "Ai đó";
             const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "Đã gửi ảnh 📷" : "Đã gửi tệp 📎";
             sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
+            // Update own read receipt since we're viewing this conversation
+            updateReadReceipt();
           }
 
           setMessages((prev) => {
@@ -131,9 +165,27 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       })
       .subscribe();
 
+    // Listen for read receipt updates
+    const readChannel = supabase
+      .channel(`reads:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "message_reads",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          loadReadReceipts();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(typingChannel);
+      supabase.removeChannel(readChannel);
     };
   }, [conversationId, user?.id]);
 
@@ -555,6 +607,11 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             const isSearchMatch = searchResults.includes(msg.id);
             const isCurrentMatch = searchResults[searchIndex] === msg.id;
 
+            // Show "Seen" on the last of my messages that the other user has read
+            const isSeen = isMe && otherReadAt && msg.created_at <= otherReadAt;
+            const nextMsg = messages[i + 1];
+            const isLastSeen = isSeen && (!nextMsg || nextMsg.sender_id !== user?.id || (otherReadAt && nextMsg.created_at > otherReadAt));
+
             return (
               <div id={`msg-${msg.id}`} key={msg.id} className={cn(
                 "flex gap-2 group/msg transition-colors duration-300",
@@ -651,9 +708,14 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                   {!msg.is_deleted && (
                     <MessageReactions messageId={msg.id} isMe={isMe} />
                   )}
-                  <p className={cn("text-[10px] text-muted-foreground px-1", isMe && "text-right")}>
-                    {format(new Date(msg.created_at), "HH:mm")}
-                  </p>
+                  <div className={cn("flex items-center gap-1 px-1", isMe && "justify-end")}>
+                    <p className="text-[10px] text-muted-foreground">
+                      {format(new Date(msg.created_at), "HH:mm")}
+                    </p>
+                    {isLastSeen && (
+                      <span className="text-[10px] text-primary font-medium">✓ Đã xem</span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
