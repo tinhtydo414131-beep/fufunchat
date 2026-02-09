@@ -124,6 +124,8 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             last_message = "📷 Ảnh";
           } else if (lm.type === "file") {
             last_message = "📎 Tệp";
+          } else if (lm.type === "voice") {
+            last_message = "🎤 Tin nhắn thoại";
           } else {
             last_message = lm.content || "";
           }
