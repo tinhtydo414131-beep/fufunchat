@@ -131,6 +131,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     localStorage.setItem(LANG_KEY, language);
     // Dispatch storage-like event so I18nProvider picks up the resolved language
     window.dispatchEvent(new Event("storage"));
+    // Save resolved language to profile
+    if (user) {
+      const resolved = language === "auto" ? getStoredLanguage() : language;
+      supabase.from("profiles").update({ language: resolved } as any).eq("user_id", user.id).then();
+    }
   }, [language]);
 
   useEffect(() => {

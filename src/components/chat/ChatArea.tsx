@@ -22,6 +22,12 @@ import { useUserStatus, STATUS_EMOJI } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
 import { useTranslation } from "@/hooks/useI18n";
 
+const LANGUAGE_FLAGS: Record<string, string> = {
+  vi: "🇻🇳", en: "🇺🇸", es: "🇪🇸", pt: "🇧🇷", hi: "🇮🇳",
+  ar: "🇸🇦", he: "🇮🇱", fa: "🇮🇷", tr: "🇹🇷",
+  ja: "🇯🇵", ko: "🇰🇷", zh: "🇨🇳",
+};
+
 interface Message {
   id: string;
   conversation_id: string;
@@ -32,7 +38,7 @@ interface Message {
   created_at: string;
   updated_at: string;
   reply_to: string | null;
-  sender?: { display_name: string; avatar_url: string | null };
+  sender?: { display_name: string; avatar_url: string | null; language?: string | null };
 }
 
 interface ChatAreaProps {
@@ -241,7 +247,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           const newMsg = payload.new as Message;
           const { data: profile } = await supabase
             .from("profiles")
-            .select("display_name, avatar_url")
+            .select("display_name, avatar_url, language")
             .eq("user_id", newMsg.sender_id)
             .single();
 
@@ -380,7 +386,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       const senderIds = [...new Set(data.map((m) => m.sender_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, display_name, avatar_url")
+        .select("user_id, display_name, avatar_url, language")
         .in("user_id", senderIds);
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
@@ -1171,6 +1177,11 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                   <div className={cn("flex items-center gap-1 px-1", isMe && "justify-end")}>
                     {pinnedMessageIds.has(msg.id) && (
                       <Pin className="w-2.5 h-2.5 text-primary" />
+                    )}
+                    {msg.sender?.language && LANGUAGE_FLAGS[msg.sender.language] && (
+                      <span className="text-[10px]" title={msg.sender.language}>
+                        {LANGUAGE_FLAGS[msg.sender.language]}
+                      </span>
                     )}
                     <p className="text-[10px] text-muted-foreground">
                       {format(new Date(msg.created_at), "HH:mm")}
