@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Moon, Sun } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Moon, Sun, Volume2, VolumeX } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("notification_sound") !== "off");
 
   useEffect(() => {
     if (!user) return;
@@ -198,6 +199,13 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             )}
             <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
               <Plus className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => {
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              localStorage.setItem("notification_sound", next ? "on" : "off");
+            }} title={soundEnabled ? "Tắt âm thông báo" : "Bật âm thông báo"}>
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Chế độ tối/sáng">
               {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
