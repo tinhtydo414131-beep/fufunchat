@@ -101,9 +101,22 @@
     @apply border-border;
   }
 
+  html {
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Nunito', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, box-shadow, color, fill, stroke;
+    transition-duration: 0.3s;
+    transition-timing-function: ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
