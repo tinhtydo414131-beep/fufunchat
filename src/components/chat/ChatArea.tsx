@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -13,6 +13,7 @@ import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
 import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
@@ -79,6 +80,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [editText, setEditText] = useState("");
   const [isMuted, setIsMuted] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
   const isMutedRef = useRef(false);
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -482,6 +486,38 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       setSending(false);
       setReplyTo(null);
       inputRef.current?.focus();
+    }
+  };
+
+  const scheduleMessage = async () => {
+    if (!newMessage.trim() || !conversationId || !user || !scheduleDate || !scheduleTime) {
+      toast.error("Vui lòng nhập tin nhắn và chọn thời gian hẹn giờ");
+      return;
+    }
+    const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`);
+    if (scheduledAt <= new Date()) {
+      toast.error("Thời gian hẹn giờ phải trong tương lai");
+      return;
+    }
+
+    const { error } = await supabase.from("scheduled_messages").insert({
+      conversation_id: conversationId,
+      sender_id: user.id,
+      content: newMessage.trim(),
+      type: "text",
+      reply_to: replyTo?.id || null,
+      scheduled_at: scheduledAt.toISOString(),
+    });
+
+    if (error) {
+      toast.error("Không thể hẹn giờ tin nhắn");
+    } else {
+      toast.success(`Tin nhắn sẽ được gửi lúc ${format(scheduledAt, "HH:mm dd/MM/yyyy")} ⏰`);
+      setNewMessage("");
+      setReplyTo(null);
+      setScheduleOpen(false);
+      setScheduleDate("");
+      setScheduleTime("");
     }
   };
 
@@ -1220,14 +1256,62 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
               className="bg-muted/50 border-0"
             />
             {newMessage.trim() || pendingFiles.length > 0 ? (
-              <Button
-                type="submit"
-                size="icon"
-                disabled={sending || uploading}
-                className="shrink-0"
-              >
-                <Send className="w-5 h-5" />
-              </Button>
+              <>
+                <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0 text-muted-foreground hover:text-primary"
+                      title="Hẹn giờ gửi"
+                      disabled={!newMessage.trim()}
+                    >
+                      <Clock className="w-5 h-5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3 pointer-events-auto" align="end" side="top">
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold">Hẹn giờ gửi ⏰</p>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Ngày</label>
+                        <Input
+                          type="date"
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          min={new Date().toISOString().split("T")[0]}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Giờ</label>
+                        <Input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={scheduleMessage}
+                        disabled={!scheduleDate || !scheduleTime}
+                      >
+                        <Clock className="w-4 h-4 mr-1" /> Hẹn giờ
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={sending || uploading}
+                  className="shrink-0"
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
+              </>
             ) : (
               <Button
                 type="button"
