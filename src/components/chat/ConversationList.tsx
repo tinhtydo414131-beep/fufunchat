@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Search, Plus, LogOut, Sparkles } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Conversation {
@@ -28,6 +29,7 @@ interface ConversationListProps {
 
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey }: ConversationListProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -120,6 +122,9 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Sparkles className="w-4 h-4 text-primary/60" />
           </div>
           <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title="Hồ sơ">
+              <User className="w-5 h-5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
               <Plus className="w-5 h-5" />
             </Button>
