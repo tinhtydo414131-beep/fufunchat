@@ -500,6 +500,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       return;
     }
 
+    // @ts-ignore - table exists but not yet in generated types
     const { error } = await supabase.from("scheduled_messages").insert({
       conversation_id: conversationId,
       sender_id: user.id,
@@ -510,6 +511,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     });
 
     if (error) {
+      console.error("Schedule message error:", error);
       toast.error("Không thể hẹn giờ tin nhắn");
     } else {
       toast.success(`Tin nhắn sẽ được gửi lúc ${format(scheduledAt, "HH:mm dd/MM/yyyy")} ⏰`);
