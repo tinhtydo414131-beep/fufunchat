@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Moon, Sun, Volume2, VolumeX } from "lucide-react";
-import { useTheme } from "next-themes";
+import { MessageCircle, Search, Plus, LogOut, Sparkles, User, SearchCheck, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SettingsDialog } from "./SettingsDialog";
 
 interface Conversation {
   id: string;
@@ -44,11 +44,10 @@ export function markConversationRead(userId: string, convId: string) {
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("notification_sound") !== "off");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -200,15 +199,8 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Button variant="ghost" size="icon" onClick={onNewChat} title="Trò chuyện mới">
               <Plus className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => {
-              const next = !soundEnabled;
-              setSoundEnabled(next);
-              localStorage.setItem("notification_sound", next ? "on" : "off");
-            }} title={soundEnabled ? "Tắt âm thông báo" : "Bật âm thông báo"}>
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Chế độ tối/sáng">
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Cài đặt">
+              <Settings className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={onSignOut} title="Đăng xuất">
               <LogOut className="w-5 h-5" />
@@ -295,6 +287,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
           </div>
         )}
       </ScrollArea>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
