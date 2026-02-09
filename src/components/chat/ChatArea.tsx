@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
 import { TypingIndicator } from "./TypingIndicator";
+import { GroupManagementDialog } from "./GroupManagementDialog";
 import { toast } from "sonner";
 
 interface Message {
@@ -50,6 +51,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number } | null>(null);
+  const [groupManagementOpen, setGroupManagementOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -352,15 +354,20 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     <div className="flex-1 flex flex-col bg-background">
       {/* Chat Header */}
       {convInfo && convInfo.type === "group" && (
-        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setGroupManagementOpen(true)}
+          className="w-full px-4 py-3 border-b border-border bg-card flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+        >
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <Users className="w-5 h-5 text-primary" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{convInfo.name || "Nhóm"}</p>
             <p className="text-xs text-muted-foreground">{convInfo.memberCount} thành viên</p>
           </div>
-        </div>
+          <Settings className="w-4 h-4 text-muted-foreground" />
+        </button>
       )}
 
       {/* Messages */}
@@ -506,6 +513,16 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           onChange={handleFileSelect}
         />
       </form>
+
+      {/* Group Management Dialog */}
+      {conversationId && (
+        <GroupManagementDialog
+          open={groupManagementOpen}
+          onOpenChange={setGroupManagementOpen}
+          conversationId={conversationId}
+          onUpdated={loadConvInfo}
+        />
+      )}
 
       {/* Lightbox */}
       {lightboxUrl && (
