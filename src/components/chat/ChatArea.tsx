@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -294,6 +294,34 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const recallMessage = async (msg: Message) => {
+    if (msg.sender_id !== user?.id) return;
+    const { error } = await supabase
+      .from("messages")
+      .update({ is_deleted: true, content: null })
+      .eq("id", msg.id);
+    if (error) {
+      toast.error("Không thể thu hồi tin nhắn");
+    } else {
+      setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, is_deleted: true, content: null } : m));
+      toast.success("Đã thu hồi tin nhắn");
+    }
+  };
+
+  const deleteMessage = async (msg: Message) => {
+    if (msg.sender_id !== user?.id) return;
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", msg.id);
+    if (error) {
+      toast.error("Không thể xóa tin nhắn");
+    } else {
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+      toast.success("Đã xóa tin nhắn");
+    }
+  };
+
   const renderMessageContent = (msg: Message, isMe: boolean) => {
     if (msg.is_deleted) {
       return <span className="italic text-muted-foreground">Tin nhắn đã được thu hồi</span>;
@@ -431,15 +459,31 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                       </div>
                     );
                   })()}
-                  <div className="flex items-center gap-1">
-                    {isMe && (
-                      <button
-                        onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
-                        className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                        title="Trả lời"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="flex items-center gap-0.5">
+                    {isMe && !msg.is_deleted && (
+                      <>
+                        <button
+                          onClick={() => deleteMessage(msg)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          title="Xóa tin nhắn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => recallMessage(msg)}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title="Thu hồi tin nhắn"
+                        >
+                          <Undo2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                          title="Trả lời"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     )}
                     <div
                       className={cn(
@@ -452,7 +496,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                     >
                       {renderMessageContent(msg, isMe)}
                     </div>
-                    {!isMe && (
+                    {!isMe && !msg.is_deleted && (
                       <button
                         onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
                         className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
