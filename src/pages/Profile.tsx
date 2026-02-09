@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,12 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Camera, Save, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Camera, Save, Sparkles, Volume2, VolumeX, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
@@ -199,6 +201,22 @@ const Profile = () => {
                   setSoundEnabled(checked);
                   localStorage.setItem("notification_sound", checked ? "on" : "off");
                   toast.success(checked ? "Đã bật âm thanh 🔔" : "Đã tắt âm thanh 🔕");
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                {theme === "dark" ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
+                <div>
+                  <p className="text-sm font-medium">Chế độ tối</p>
+                  <p className="text-xs text-muted-foreground">Chuyển đổi giao diện sáng / tối</p>
+                </div>
+              </div>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => {
+                  setTheme(checked ? "dark" : "light");
+                  toast.success(checked ? "Đã bật chế độ tối 🌙" : "Đã bật chế độ sáng ☀️");
                 }}
               />
             </div>
