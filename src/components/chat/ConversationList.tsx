@@ -104,9 +104,36 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
       })
     );
 
-    // Count unread messages per conversation
-    const enrichedWithUnread = await Promise.all(
+    // Fetch last message + unread count per conversation
+    const enrichedWithExtra = await Promise.all(
       (enriched as Conversation[]).map(async (conv) => {
+        // Last message
+        const { data: lastMsgData } = await supabase
+          .from("messages")
+          .select("content, type, is_deleted, sender_id")
+          .eq("conversation_id", conv.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        let last_message = "";
+        if (lastMsgData && lastMsgData.length > 0) {
+          const lm = lastMsgData[0];
+          if (lm.is_deleted) {
+            last_message = "Tin nhắn đã thu hồi";
+          } else if (lm.type === "image") {
+            last_message = "📷 Ảnh";
+          } else if (lm.type === "file") {
+            last_message = "📎 Tệp";
+          } else {
+            last_message = lm.content || "";
+          }
+          // Prefix with "Bạn: " if sent by current user
+          if (lm.sender_id === user.id && !lm.is_deleted) {
+            last_message = `Bạn: ${last_message}`;
+          }
+        }
+
+        // Unread count
         const lastRead = localStorage.getItem(getLastReadKey(user.id, conv.id));
         let query = supabase
           .from("messages")
@@ -117,11 +144,11 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
           query = query.gt("created_at", lastRead);
         }
         const { count } = await query;
-        return { ...conv, unread_count: count || 0 };
+        return { ...conv, unread_count: count || 0, last_message };
       })
     );
 
-    setConversations(enrichedWithUnread);
+    setConversations(enrichedWithExtra);
     setLoading(false);
   };
 
@@ -234,9 +261,11 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {conv.type === "direct" && conv.other_user_id
-                        ? isOnline(conv.other_user_id) ? "Đang hoạt động" : "Ngoại tuyến"
-                        : conv.type === "group" ? "Nhóm" : "Trò chuyện"}
+                      {conv.last_message || (
+                        conv.type === "direct" && conv.other_user_id
+                          ? isOnline(conv.other_user_id) ? "Đang hoạt động" : "Ngoại tuyến"
+                          : conv.type === "group" ? "Nhóm" : "Trò chuyện"
+                      )}
                     </p>
                   </div>
                 </button>
