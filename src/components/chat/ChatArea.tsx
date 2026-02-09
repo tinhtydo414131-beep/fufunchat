@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
 import { TypingIndicator } from "./TypingIndicator";
 import { GroupManagementDialog } from "./GroupManagementDialog";
+import { MessageReactions } from "./MessageReactions";
 import { toast } from "sonner";
 
 interface Message {
@@ -385,7 +386,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
             const isMedia = msg.type === "image" || msg.type === "file";
 
             return (
-              <div key={msg.id} className={cn("flex gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
+              <div key={msg.id} className={cn("flex gap-2 group/msg", isMe ? "flex-row-reverse" : "flex-row")}>
                 {!isMe && (
                   <div className="w-8 shrink-0">
                     {showAvatar && (
@@ -415,6 +416,9 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                   >
                     {renderMessageContent(msg, isMe)}
                   </div>
+                  {!msg.is_deleted && (
+                    <MessageReactions messageId={msg.id} isMe={isMe} />
+                  )}
                   <p className={cn("text-[10px] text-muted-foreground px-1", isMe && "text-right")}>
                     {format(new Date(msg.created_at), "HH:mm")}
                   </p>
