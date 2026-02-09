@@ -13,6 +13,7 @@ import { GroupManagementDialog } from "./GroupManagementDialog";
 import { MessageReactions } from "./MessageReactions";
 import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
+import { SwipeToReply } from "./SwipeToReply";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -1010,7 +1011,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             const isLastSeen = isSeen && (!nextMsg || nextMsg.sender_id !== user?.id || (otherReadAt && nextMsg.created_at > otherReadAt));
 
             return (
-              <div id={`msg-${msg.id}`} key={msg.id} className={cn(
+              <SwipeToReply
+                key={msg.id}
+                isMe={isMe}
+                disabled={msg.is_deleted}
+                onSwipeReply={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+              >
+              <div id={`msg-${msg.id}`} className={cn(
                 "flex gap-2 group/msg transition-colors duration-300",
                 isMe ? "flex-row-reverse" : "flex-row",
                 isCurrentMatch && "bg-primary/20 rounded-xl",
@@ -1195,6 +1202,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                   </div>
                 </div>
               </div>
+              </SwipeToReply>
             );
           })
         )}
