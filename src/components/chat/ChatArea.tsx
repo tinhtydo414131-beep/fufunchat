@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -26,6 +26,7 @@ interface Message {
   type: string;
   is_deleted: boolean;
   created_at: string;
+  updated_at: string;
   reply_to: string | null;
   sender?: { display_name: string; avatar_url: string | null };
 }
@@ -72,6 +73,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set());
   const [showPinnedBanner, setShowPinnedBanner] = useState(true);
+  const [editingMsg, setEditingMsg] = useState<Message | null>(null);
+  const [editText, setEditText] = useState("");
   const dragCounterRef = useRef(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -593,6 +596,22 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     }
   };
 
+  const saveEditMessage = async () => {
+    if (!editingMsg || !editText.trim()) return;
+    const { error } = await supabase
+      .from("messages")
+      .update({ content: editText.trim(), updated_at: new Date().toISOString() })
+      .eq("id", editingMsg.id);
+    if (error) {
+      toast.error("Không thể chỉnh sửa tin nhắn");
+    } else {
+      setMessages((prev) => prev.map((m) => m.id === editingMsg.id ? { ...m, content: editText.trim(), updated_at: new Date().toISOString() } : m));
+      toast.success("Đã chỉnh sửa tin nhắn ✏️");
+    }
+    setEditingMsg(null);
+    setEditText("");
+  };
+
   const deleteMessage = async (msg: Message) => {
     if (msg.sender_id !== user?.id) return;
     const { error } = await supabase
@@ -933,6 +952,15 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         >
                           <Reply className="w-3.5 h-3.5" />
                         </button>
+                        {msg.type === "text" && (
+                          <button
+                            onClick={() => { setEditingMsg(msg); setEditText(msg.content || ""); }}
+                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
+                            title="Chỉnh sửa"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setForwardMsg(msg)}
                           className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
@@ -958,7 +986,29 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                           : "bg-muted rounded-bl-md"
                       )}
                     >
-                      {renderMessageContent(msg, isMe)}
+                      {editingMsg?.id === msg.id ? (
+                        <div className="flex items-center gap-1.5 min-w-[160px]">
+                          <input
+                            autoFocus
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEditMessage();
+                              if (e.key === "Escape") { setEditingMsg(null); setEditText(""); }
+                            }}
+                            className="bg-transparent border-b border-primary-foreground/40 outline-none text-sm flex-1 min-w-0 placeholder:text-primary-foreground/50"
+                            placeholder="Chỉnh sửa..."
+                          />
+                          <button onClick={saveEditMessage} className="p-0.5 hover:opacity-80" title="Lưu">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-0.5 hover:opacity-80" title="Hủy">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        renderMessageContent(msg, isMe)
+                      )}
                     </div>
                     {!isMe && !msg.is_deleted && (
                       <>
@@ -996,6 +1046,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                     <p className="text-[10px] text-muted-foreground">
                       {format(new Date(msg.created_at), "HH:mm")}
                     </p>
+                    {msg.updated_at && msg.updated_at !== msg.created_at && !msg.is_deleted && (
+                      <span className="text-[10px] text-muted-foreground italic">(đã chỉnh sửa)</span>
+                    )}
                     {isLastSeen && (
                       <span className="text-[10px] text-primary font-medium">✓ Đã xem</span>
                     )}
