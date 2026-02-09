@@ -179,7 +179,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
   };
 
   return (
-    <div className="flex flex-col h-full bg-sidebar-background border-r border-sidebar-border">
+    <div className="flex flex-col h-full bg-sidebar-background border-e border-sidebar-border">
       {/* Header */}
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -209,12 +209,12 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
           </div>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={t("sidebar.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-muted/50"
+            className="ps-9 bg-muted/50"
           />
         </div>
       </div>
@@ -233,7 +233,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             </p>
             {!search && (
               <Button variant="outline" size="sm" onClick={onNewChat}>
-                <Plus className="w-4 h-4 mr-1" /> {t("sidebar.newChatBtn")}
+                <Plus className="w-4 h-4 me-1" /> {t("sidebar.newChatBtn")}
               </Button>
             )}
           </div>
@@ -247,7 +247,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                   key={conv.id}
                   onClick={() => handleSelect(conv.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-start",
                     "hover:bg-sidebar-accent",
                     selectedId === conv.id && "bg-sidebar-accent"
                   )}
@@ -260,14 +260,14 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                       </AvatarFallback>
                     </Avatar>
                     {conv.type === "direct" && conv.other_user_id && isOnline(conv.other_user_id) && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-sidebar-background" />
+                      <span className="absolute bottom-0 end-0 w-3 h-3 rounded-full bg-green-500 border-2 border-sidebar-background" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold truncate">{name}</p>
                       {(conv.unread_count ?? 0) > 0 && (
-                        <Badge className="ml-2 h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground shrink-0">
+                        <Badge className="ms-2 h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground shrink-0">
                           {conv.unread_count! > 99 ? "99+" : conv.unread_count}
                         </Badge>
                       )}

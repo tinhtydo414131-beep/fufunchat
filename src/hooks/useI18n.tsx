@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { getStoredLanguage } from "@/components/chat/SettingsDialog";
 
-export type Language = "vi" | "en" | "ja" | "ko" | "zh";
+export type Language = "vi" | "en" | "ja" | "ko" | "zh" | "ar";
+
+export const RTL_LANGUAGES: Language[] = ["ar"];
 
 const translations: Record<Language, Record<string, string>> = {
   vi: {
@@ -1098,6 +1100,220 @@ const translations: Record<Language, Record<string, string>> = {
     "notFound.message": "页面未找到",
     "notFound.back": "返回首页",
   },
+
+  ar: {
+    "app.loading": "FUN Chat جاري التحميل... ✨",
+    "app.tagline": "Free to Join. Free to Use. Earn Together.",
+    "auth.welcomeBack": "مرحبًا بعودتك ✨",
+    "auth.startJourney": "ابدأ رحلتك ✨",
+    "auth.loginSubtitle": "سجل دخولك للمتابعة",
+    "auth.signupSubtitle": "أنشئ حسابك وانضم إلى المجتمع",
+    "auth.displayName": "الاسم المعروض",
+    "auth.displayNamePlaceholder": "الاسم الذي تريد أن يراه الآخرون 💛",
+    "auth.email": "البريد الإلكتروني",
+    "auth.password": "كلمة المرور",
+    "auth.login": "تسجيل الدخول",
+    "auth.signup": "إنشاء حساب",
+    "auth.processing": "جاري المعالجة...",
+    "auth.noAccount": "ليس لديك حساب؟ انضم الآن 💛",
+    "auth.hasAccount": "لديك حساب؟ سجل الدخول ✨",
+    "auth.loginSuccess": "مرحبًا بعودتك! ✨",
+    "auth.signupSuccess": "مرحبًا بك ✨ تحقق من بريدك الإلكتروني للتأكيد!",
+    "auth.error": "حدث خطأ — حاول مرة أخرى 💛",
+    "auth.madeWith": "Made with",
+    "auth.by": "by FUN Ecosystem",
+    "sidebar.profile": "الملف الشخصي",
+    "sidebar.globalSearch": "بحث شامل",
+    "sidebar.newChat": "محادثة جديدة",
+    "sidebar.settings": "الإعدادات",
+    "sidebar.signOut": "تسجيل الخروج",
+    "sidebar.searchPlaceholder": "البحث في المحادثات 💛",
+    "sidebar.loading": "جاري التحميل... ✨",
+    "sidebar.noResults": "لم يتم العثور على نتائج 💛",
+    "sidebar.startFirst": "ابدأ محادثتك الأولى! ✨",
+    "sidebar.newChatBtn": "محادثة جديدة",
+    "sidebar.active": "نشط",
+    "sidebar.offline": "غير متصل",
+    "sidebar.group": "مجموعة",
+    "sidebar.chat": "محادثة",
+    "chat.welcome": "مرحبًا بك في FUN Chat ✨",
+    "chat.welcomeSubtitle": "اختر محادثة أو ابدأ محادثة جديدة 💛",
+    "chat.user": "مستخدم",
+    "chat.active": "نشط",
+    "chat.away": "بعيد",
+    "chat.busy": "مشغول",
+    "chat.offline": "غير متصل",
+    "chat.typingOne": "{name} يكتب...",
+    "chat.typingTwo": "{name1} و{name2} يكتبان...",
+    "chat.typingMany": "{name} و{count} آخرون يكتبون...",
+    "chat.enableNotif": "تفعيل الإشعارات",
+    "chat.disableNotif": "كتم الإشعارات",
+    "chat.searchMessages": "البحث في الرسائل",
+    "chat.group": "مجموعة",
+    "chat.members": "أعضاء",
+    "chat.pinnedMessages": "رسائل مثبتة 📌",
+    "chat.searchPlaceholder": "البحث في الرسائل...",
+    "chat.loadingMessages": "جاري تحميل الرسائل... ✨",
+    "chat.startConversation": "ابدأ المحادثة! أرسل أول رسالة 💛",
+    "chat.deletedMessage": "تم حذف الرسالة 🚫",
+    "chat.deletedPreview": "رسالة محذوفة",
+    "chat.imagePreview": "📷 صورة",
+    "chat.filePreview": "📎 ملف",
+    "chat.voicePreview": "🎤 رسالة صوتية",
+    "chat.youPrefix": "أنت",
+    "chat.recallMessage": "سحب الرسالة",
+    "chat.reply": "رد",
+    "chat.edit": "تعديل",
+    "chat.editPlaceholder": "تعديل...",
+    "chat.forward": "إعادة توجيه",
+    "chat.pin": "تثبيت الرسالة",
+    "chat.unpin": "إلغاء التثبيت",
+    "chat.edited": "(تم التعديل)",
+    "chat.seen": "✓ مقروءة",
+    "chat.dropFiles": "اسحب الملفات هنا للإرسال",
+    "chat.fileTooLarge": "كبير جدًا (الحد الأقصى 20MB)",
+    "chat.cancel": "إلغاء",
+    "chat.recording": "جاري التسجيل...",
+    "chat.send": "إرسال",
+    "chat.sendImage": "إرسال صورة",
+    "chat.attachFile": "إرفاق ملف",
+    "chat.inputPlaceholder": "اكتب رسالة... ✨",
+    "chat.scheduleSend": "إرسال مجدول",
+    "chat.scheduleTitle": "إرسال مجدول ⏰",
+    "chat.date": "التاريخ",
+    "chat.time": "الوقت",
+    "chat.schedule": "جدولة",
+    "chat.voiceRecord": "تسجيل رسالة صوتية",
+    "chat.zoomedImage": "صورة مكبرة",
+    "chat.replyingTo": "الرد على",
+    "chat.download": "تحميل",
+    "chat.forwardedFrom": "أُعيد توجيهها من",
+    "chat.scheduleError": "تعذرت جدولة الرسالة",
+    "chat.scheduleSuccess": "سيتم إرسال الرسالة في",
+    "chat.save": "حفظ",
+    "chat.pinError": "تعذر تثبيت الرسالة",
+    "chat.pinSuccess": "تم تثبيت الرسالة 📌",
+    "chat.unpinError": "تعذر إلغاء التثبيت",
+    "chat.unpinSuccess": "تم إلغاء التثبيت",
+    "chat.mutedSuccess": "تم كتم الإشعارات 🔕",
+    "chat.unmutedSuccess": "تم تفعيل الإشعارات 🔔",
+    "chat.recallError": "تعذر سحب الرسالة",
+    "chat.recallSuccess": "تم سحب الرسالة",
+    "chat.editError": "تعذر تعديل الرسالة",
+    "chat.editSuccess": "تم تعديل الرسالة ✏️",
+    "chat.deleteError": "تعذر حذف الرسالة",
+    "chat.deleteSuccess": "تم حذف الرسالة",
+    "chat.voiceTooShort": "الرسالة الصوتية قصيرة جدًا",
+    "chat.voiceError": "تعذر التسجيل 🎤",
+    "chat.voiceUploadFailed": "فشل رفع الرسالة الصوتية",
+    "chat.voiceSent": "تم إرسال الرسالة الصوتية 🎤 ✓",
+    "newChat.title": "محادثة جديدة ✨",
+    "newChat.direct": "خاصة",
+    "newChat.groupTab": "مجموعة",
+    "newChat.searchUsers": "البحث عن مستخدمين...",
+    "newChat.searching": "جاري البحث... ✨",
+    "newChat.noResults": "لم يتم العثور على أحد 💛",
+    "newChat.groupName": "اسم المجموعة ✨",
+    "newChat.addMembers": "البحث وإضافة أعضاء...",
+    "newChat.noGroupResults": "لم يتم العثور على أحد 💛",
+    "newChat.creating": "جاري الإنشاء...",
+    "newChat.createGroup": "إنشاء مجموعة",
+    "newChat.memberCount": "أعضاء",
+    "newChat.minMembers": "يلزم عضوان على الأقل لإنشاء مجموعة 💛",
+    "newChat.created": "تم إنشاء محادثة جديدة ✨",
+    "newChat.createError": "تعذر الإنشاء — حاول مرة أخرى 💛",
+    "newChat.groupCreated": "تم الإنشاء ✨",
+    "newChat.groupCreateError": "تعذر إنشاء المجموعة 💛",
+    "globalSearch.title": "البحث في الرسائل",
+    "globalSearch.placeholder": "أدخل كلمة للبحث...",
+    "globalSearch.noResults": "لم يتم العثور على نتائج 💛",
+    "globalSearch.in": "في",
+    "forward.title": "إعادة توجيه الرسالة",
+    "forward.search": "البحث في المحادثات...",
+    "forward.noResults": "لم يتم العثور على محادثات",
+    "forward.success": "تم إعادة توجيه الرسالة ✨",
+    "forward.error": "تعذرت إعادة توجيه الرسالة",
+    "groupMgmt.title": "إدارة المجموعة",
+    "groupMgmt.membersTab": "الأعضاء",
+    "groupMgmt.settingsTab": "الإعدادات",
+    "groupMgmt.searchAdd": "البحث عن شخص لإضافته...",
+    "groupMgmt.you": "(أنت)",
+    "groupMgmt.admin": "مشرف",
+    "groupMgmt.groupName": "اسم المجموعة",
+    "groupMgmt.noName": "بدون اسم",
+    "groupMgmt.adminOnly": "فقط المشرفون يمكنهم تغيير إعدادات المجموعة.",
+    "groupMgmt.renameError": "تعذرت إعادة التسمية",
+    "groupMgmt.renamed": "تم تغيير اسم المجموعة ✨",
+    "groupMgmt.addError": "تعذرت إضافة العضو",
+    "groupMgmt.added": "تمت الإضافة",
+    "groupMgmt.removeError": "تعذر إزالة العضو",
+    "groupMgmt.removed": "تمت الإزالة",
+    "groupMgmt.cantRemoveSelf": "لا يمكنك إزالة نفسك",
+    "profile.title": "ملفك الشخصي",
+    "profile.loading": "جاري تحميل الملف الشخصي... ✨",
+    "profile.uploadError": "تعذر رفع الصورة 💛",
+    "profile.avatarUpdated": "تم تحديث الصورة الشخصية ✨",
+    "profile.uploading": "جاري الرفع...",
+    "profile.personalInfo": "المعلومات الشخصية",
+    "profile.displayName": "الاسم المعروض",
+    "profile.displayNamePlaceholder": "الاسم الذي تريد أن يراه الآخرون 💛",
+    "profile.bio": "النبذة",
+    "profile.bioPlaceholder": "اكتب شيئًا عن نفسك ✨",
+    "profile.save": "حفظ التغييرات",
+    "profile.saving": "جاري الحفظ...",
+    "profile.saveError": "تعذر الحفظ — حاول مرة أخرى 💛",
+    "profile.saved": "تم تحديث الملف الشخصي ✨",
+    "profile.status": "الحالة",
+    "profile.customStatus": "حالة مخصصة",
+    "profile.customPlaceholder": "مثال: في اجتماع 📋",
+    "profile.statusUpdated": "تم تحديث الحالة ✨",
+    "profile.settingsTitle": "الإعدادات",
+    "profile.notifSound": "صوت الإشعارات",
+    "profile.notifSoundDesc": "تشغيل صوت عند وصول رسالة جديدة",
+    "profile.soundOn": "تم تفعيل الصوت 🔔",
+    "profile.soundOff": "تم كتم الصوت 🔕",
+    "profile.darkMode": "الوضع الداكن",
+    "profile.darkModeDesc": "التبديل بين الوضع الفاتح والداكن",
+    "profile.darkOn": "تم تفعيل الوضع الداكن 🌙",
+    "profile.darkOff": "تم تفعيل الوضع الفاتح ☀️",
+    "profile.joinedAt": "انضم في",
+    "settings.title": "الإعدادات ⚙️",
+    "settings.darkMode": "الوضع الداكن",
+    "settings.darkModeDesc": "التبديل بين الوضع الفاتح والداكن",
+    "settings.notifSound": "صوت الإشعارات",
+    "settings.notifSoundDesc": "تشغيل صوت عند وصول رسالة جديدة",
+    "settings.fontSize": "حجم الخط",
+    "settings.fontSmall": "صغير",
+    "settings.fontLarge": "كبير",
+    "settings.wallpaper": "خلفية المحادثة",
+    "settings.wallpaperDesc": "اختر خلفية أو ارفع صورة",
+    "settings.wallpaperOpacity": "سطوع الخلفية",
+    "settings.opacityDark": "داكن",
+    "settings.opacityBright": "فاتح",
+    "settings.uploadImage": "رفع صورة",
+    "settings.uploading": "جاري الرفع...",
+    "settings.uploadSuccess": "تم رفع الخلفية! 🎨",
+    "settings.uploadError": "تعذر رفع الصورة",
+    "settings.uploadTypeError": "يُدعم فقط JPG، PNG، WebP، GIF",
+    "settings.uploadSizeError": "يجب أن تكون الصورة أقل من 5MB",
+    "settings.removeWallpaper": "إزالة الخلفية",
+    "settings.language": "اللغة",
+    "settings.languageDesc": "اختر لغة العرض",
+    "wallpaper.none": "افتراضي",
+    "wallpaper.dots": "نقاط",
+    "wallpaper.grid": "شبكة",
+    "wallpaper.diagonal": "خطوط",
+    "wallpaper.bubbles": "فقاعات",
+    "wallpaper.warm": "دافئ",
+    "wallpaper.ocean": "محيط",
+    "status.online": "متصل",
+    "status.away": "بعيد",
+    "status.busy": "مشغول",
+    "status.offline": "غير متصل",
+    "notFound.title": "404",
+    "notFound.message": "الصفحة غير موجودة",
+    "notFound.back": "العودة للرئيسية",
+  },
 };
 
 interface I18nContextType {
@@ -1115,13 +1331,18 @@ const I18nContext = createContext<I18nContextType>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => getStoredLanguage() as Language);
 
+  // Apply RTL direction to document
+  useEffect(() => {
+    const isRtl = RTL_LANGUAGES.includes(language);
+    document.documentElement.dir = isRtl ? "rtl" : "ltr";
+    document.documentElement.lang = language;
+  }, [language]);
+
   useEffect(() => {
     const handler = () => {
       setLanguageState(getStoredLanguage() as Language);
     };
-    // Listen for language changes from settings
     window.addEventListener("storage", handler);
-    // Custom event for same-tab changes
     const interval = setInterval(() => {
       const current = getStoredLanguage() as Language;
       setLanguageState((prev) => (prev !== current ? current : prev));
