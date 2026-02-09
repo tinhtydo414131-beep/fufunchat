@@ -29,8 +29,23 @@ export function getStoredFontSize(): number {
   return stored ? parseInt(stored, 10) : 14;
 }
 
+const SUPPORTED_LANGUAGES = ["vi", "en", "ja", "ko", "zh", "ar", "he", "fa", "tr"];
+
+function detectBrowserLanguage(): string {
+  const browserLangs = navigator.languages || [navigator.language];
+  for (const lang of browserLangs) {
+    const code = lang.split("-")[0].toLowerCase();
+    if (SUPPORTED_LANGUAGES.includes(code)) return code;
+  }
+  return "en";
+}
+
 export function getStoredLanguage(): string {
-  return localStorage.getItem(LANG_KEY) || "vi";
+  const stored = localStorage.getItem(LANG_KEY);
+  if (stored) return stored;
+  const detected = detectBrowserLanguage();
+  localStorage.setItem(LANG_KEY, detected);
+  return detected;
 }
 
 export function getStoredWallpaper(): string {
