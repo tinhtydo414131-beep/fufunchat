@@ -170,9 +170,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       pinned_by: user.id,
     });
     if (error) {
-      toast.error(t("chat.pinError") || "Cannot pin");
+      toast.error(t("chat.pinError"));
     } else {
-      toast.success(t("chat.pinSuccess") || "Pinned 📌");
+      toast.success(t("chat.pinSuccess"));
     }
   };
 
@@ -184,9 +184,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .eq("conversation_id", conversationId)
       .eq("message_id", msgId);
     if (error) {
-      toast.error(t("chat.unpinError") || "Cannot unpin");
+      toast.error(t("chat.unpinError"));
     } else {
-      toast.success(t("chat.unpinSuccess") || "Unpinned");
+      toast.success(t("chat.unpinSuccess"));
     }
   };
 
@@ -602,7 +602,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         if (blob.size < 1000) {
-          toast.error("Voice message too short");
+          toast.error(t("chat.voiceTooShort"));
           return;
         }
         await sendVoiceMessage(blob);
@@ -616,7 +616,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         setRecordingDuration((d) => d + 1);
       }, 1000);
     } catch {
-      toast.error("🎤");
+      toast.error(t("chat.voiceError"));
     }
   };
 
@@ -648,7 +648,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         .upload(path, blob, { contentType: "audio/webm" });
 
       if (uploadError) {
-        toast.error("Upload failed");
+        toast.error(t("chat.voiceUploadFailed"));
         return;
       }
 
@@ -667,7 +667,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         .eq("id", conversationId);
 
       setReplyTo(null);
-      toast.success("🎤 ✓");
+      toast.success(t("chat.voiceSent"));
     } finally {
       setSending(false);
     }
