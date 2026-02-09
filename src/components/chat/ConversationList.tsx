@@ -124,19 +124,18 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
         if (lastMsgData && lastMsgData.length > 0) {
           const lm = lastMsgData[0];
           if (lm.is_deleted) {
-            last_message = "Tin nhắn đã thu hồi";
+            last_message = t("chat.deletedPreview");
           } else if (lm.type === "image") {
-            last_message = "📷 Ảnh";
+            last_message = t("chat.imagePreview");
           } else if (lm.type === "file") {
-            last_message = "📎 Tệp";
+            last_message = t("chat.filePreview");
           } else if (lm.type === "voice") {
-            last_message = "🎤 Tin nhắn thoại";
+            last_message = t("chat.voicePreview");
           } else {
             last_message = lm.content || "";
           }
-          // Prefix with "Bạn: " if sent by current user
           if (lm.sender_id === user.id && !lm.is_deleted) {
-            last_message = `Bạn: ${last_message}`;
+            last_message = `${t("chat.youPrefix")}: ${last_message}`;
           }
         }
 
