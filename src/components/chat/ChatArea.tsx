@@ -14,6 +14,7 @@ import { MessageReactions } from "./MessageReactions";
 import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
@@ -843,14 +844,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
     }
 
     if (msg.type === "voice" && msg.content) {
-      return (
-        <div className="flex items-center gap-2 min-w-[180px]">
-          <Mic className="w-4 h-4 shrink-0 text-primary" />
-          <audio controls preload="metadata" className="h-8 max-w-[220px]">
-            <source src={msg.content} type="audio/webm" />
-          </audio>
-        </div>
-      );
+      return <VoiceMessagePlayer src={msg.content} isMe={isMe} />;
     }
 
     return msg.content;
