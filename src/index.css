@@ -318,3 +318,29 @@
 .heartbeat-pulse {
   animation: heartbeat 1.2s ease-in-out 2;
 }
+
+@keyframes snowfall {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(105vh) translateX(var(--snow-drift, 30px)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.snowflake-particle {
+  position: absolute;
+  top: -20px;
+  color: hsl(210 40% 90%);
+  text-shadow: 0 0 6px hsl(210 60% 85% / 0.6);
+  animation: snowfall 4s linear forwards;
+  line-height: 1;
+}

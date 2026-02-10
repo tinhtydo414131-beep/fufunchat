@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
+// ... keep existing code (CELEBRATION_EMOJIS, CONFETTI_COLORS, Particle interface, isCelebrationMessage)
 const CELEBRATION_EMOJIS = ["🎉", "🥳", "🎊", "🎈", "🏆", "🥇", "🎆", "🎇", "✨"];
 const CONFETTI_COLORS = [
   "hsl(270 70% 60%)",
@@ -12,6 +13,8 @@ const CONFETTI_COLORS = [
   "hsl(185 70% 55%)",
   "hsl(0 80% 65%)",
 ];
+
+const SNOW_EMOJIS = ["❄️", "☃️", "⛄", "🌨️", "🏔️"];
 
 interface Particle {
   id: number;
@@ -28,6 +31,11 @@ interface Particle {
 export function isCelebrationMessage(content: string | null): boolean {
   if (!content) return false;
   return CELEBRATION_EMOJIS.some((e) => content.includes(e));
+}
+
+export function isSnowMessage(content: string | null): boolean {
+  if (!content) return false;
+  return SNOW_EMOJIS.some((e) => content.includes(e));
 }
 
 export function ConfettiRain({ onDone }: { onDone: () => void }) {
@@ -52,10 +60,7 @@ export function ConfettiRain({ onDone }: { onDone: () => void }) {
   }, [onDone]);
 
   return createPortal(
-    <div
-      className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 9999 }}
-    >
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 9999 }}>
       {particles.map((p) => (
         <div
           key={p.id}
@@ -78,16 +83,67 @@ export function ConfettiRain({ onDone }: { onDone: () => void }) {
   );
 }
 
+interface Snowflake {
+  id: number;
+  x: number;
+  delay: number;
+  duration: number;
+  size: number;
+  drift: number;
+  opacity: number;
+}
+
+export function SnowFall({ onDone }: { onDone: () => void }) {
+  const [flakes] = useState<Snowflake[]>(() =>
+    Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      delay: Math.random() * 2,
+      duration: 3 + Math.random() * 3,
+      size: 8 + Math.random() * 16,
+      drift: (Math.random() - 0.5) * 80,
+      opacity: 0.5 + Math.random() * 0.5,
+    }))
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(onDone, 6000);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return createPortal(
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 9999 }}>
+      {flakes.map((f) => (
+        <div
+          key={f.id}
+          className="snowflake-particle"
+          style={{
+            left: `${f.x}%`,
+            fontSize: f.size,
+            animationDelay: `${f.delay}s`,
+            animationDuration: `${f.duration}s`,
+            opacity: f.opacity,
+            "--snow-drift": `${f.drift}px`,
+          } as React.CSSProperties}
+        >
+          ❄
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
+}
+
 export function useConfetti() {
   const [active, setActive] = useState(false);
+  const trigger = useCallback(() => setActive(true), []);
+  const element = active ? <ConfettiRain onDone={() => setActive(false)} /> : null;
+  return { trigger, element };
+}
 
-  const trigger = useCallback(() => {
-    setActive(true);
-  }, []);
-
-  const element = active ? (
-    <ConfettiRain onDone={() => setActive(false)} />
-  ) : null;
-
+export function useSnow() {
+  const [active, setActive] = useState(false);
+  const trigger = useCallback(() => setActive(true), []);
+  const element = active ? <SnowFall onDone={() => setActive(false)} /> : null;
   return { trigger, element };
 }

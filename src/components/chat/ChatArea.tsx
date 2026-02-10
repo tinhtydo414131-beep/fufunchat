@@ -15,7 +15,7 @@ import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
-import { useConfetti, isCelebrationMessage } from "./ConfettiEffect";
+import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
 function isAngryMessage(content: string | null): boolean {
@@ -74,6 +74,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { sendNotification } = useNotifications();
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
+  const { trigger: triggerSnow, element: snowElement } = useSnow();
   const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
   const [shaking, setShaking] = useState(false);
   const triggerShake = () => { setShaking(true); setTimeout(() => setShaking(false), 550); };
@@ -297,6 +298,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           // Trigger confetti for incoming celebration messages
           if (isCelebrationMessage(newMsg.content)) triggerConfetti();
           if (isAngryMessage(newMsg.content)) triggerShake();
+          if (isSnowMessage(newMsg.content)) triggerSnow();
         }
       )
       .subscribe();
@@ -534,6 +536,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         else {
           if (isCelebrationMessage(content)) triggerConfetti();
           if (isAngryMessage(content)) triggerShake();
+          if (isSnowMessage(content)) triggerSnow();
         }
       }
 
@@ -841,6 +844,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   return (
     <>
     {confettiElement}
+    {snowElement}
     <div
       className={cn("flex-1 flex flex-col bg-background relative min-h-0", shaking && "screen-shake")}
       onDragEnter={(e) => {
