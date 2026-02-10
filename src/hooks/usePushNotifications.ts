@@ -16,7 +16,7 @@ export function usePushNotifications() {
       // supabase.functions.invoke uses POST by default, we need GET with query param
       // Use fetch directly for GET requests
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notifs?action=vapid-key`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notify?action=vapid-key`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -70,7 +70,7 @@ export function usePushNotifications() {
       const session = (await supabase.auth.getSession()).data.session;
 
       await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notifs?action=subscribe`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notify?action=subscribe`,
         {
           method: "POST",
           headers: {
@@ -100,7 +100,7 @@ export function usePushNotifications() {
         const session = (await supabase.auth.getSession()).data.session;
 
         await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notifs?action=send`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notify?action=send`,
           {
             method: "POST",
             headers: {

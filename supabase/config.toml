@@ -3,5 +3,5 @@ project_id = "ymrftrfgbzhhsyqoenze"
 [functions.send-scheduled-messages]
 verify_jwt = false
 
-[functions.push-notifs]
+[functions.push-notify]
 verify_jwt = false
