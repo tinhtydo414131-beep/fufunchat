@@ -59,20 +59,21 @@ export function MessageContextMenu({
   // Mobile long-press handler
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      if (disabled || !isMobile) return;
+      if (disabled) return;
       const touch = e.touches[0];
       touchRef.current = { x: touch.clientX, y: touch.clientY };
       movedRef.current = false;
 
       timerRef.current = setTimeout(() => {
         if (!movedRef.current) {
+          console.log("[ContextMenu] long-press fired");
           if (navigator.vibrate) navigator.vibrate(20);
           setPosition({ x: touch.clientX, y: touch.clientY });
           setOpen(true);
         }
       }, LONG_PRESS_MS);
     },
-    [disabled, isMobile]
+    [disabled]
   );
 
   const handleTouchMove = useCallback(
@@ -95,8 +96,8 @@ export function MessageContextMenu({
   // Desktop right-click handler
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
+      console.log("[ContextMenu] right-click fired", { disabled, isMobile });
       if (disabled) return;
-      if (isMobile) return;
       e.preventDefault();
       e.stopPropagation();
       setPosition({ x: e.clientX, y: e.clientY });
