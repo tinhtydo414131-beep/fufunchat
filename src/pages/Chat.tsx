@@ -12,6 +12,7 @@ import { MobileBottomNav } from "@/components/chat/MobileBottomNav";
 import { IncomingCallDialog } from "@/components/chat/IncomingCallDialog";
 import { ActiveCallOverlay } from "@/components/chat/ActiveCallOverlay";
 import { CallHistory } from "@/components/chat/CallHistory";
+import { CallPipWidget } from "@/components/chat/CallPipWidget";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ const Chat = () => {
     isVideoEnabled,
     isSpeaker,
     isScreenSharing,
+    isPipMode,
+    setIsPipMode,
     startCall,
     answerCall,
     declineCall,
@@ -128,7 +131,7 @@ const Chat = () => {
         {incomingCall && (
           <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
         )}
-        {activeCall && (
+        {activeCall && !isPipMode && (
           <ActiveCallOverlay
             call={activeCall}
             duration={callDuration}
@@ -142,6 +145,20 @@ const Chat = () => {
             onToggleSpeaker={toggleSpeaker}
             isScreenSharing={isScreenSharing}
             onToggleScreenShare={toggleScreenShare}
+            onMinimize={() => setIsPipMode(true)}
+            localStreamRef={localStreamRef}
+            remoteStreamRef={remoteStreamRef}
+          />
+        )}
+        {activeCall && isPipMode && (
+          <CallPipWidget
+            call={activeCall}
+            duration={callDuration}
+            formatDuration={formatCallDuration}
+            isMuted={callMuted}
+            onEndCall={endCall}
+            onToggleMute={toggleCallMute}
+            onExpand={() => setIsPipMode(false)}
             localStreamRef={localStreamRef}
             remoteStreamRef={remoteStreamRef}
           />
@@ -210,7 +227,7 @@ const Chat = () => {
       {incomingCall && (
         <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
       )}
-      {activeCall && (
+      {activeCall && !isPipMode && (
         <ActiveCallOverlay
           call={activeCall}
           duration={callDuration}
@@ -224,6 +241,20 @@ const Chat = () => {
           onToggleSpeaker={toggleSpeaker}
           isScreenSharing={isScreenSharing}
           onToggleScreenShare={toggleScreenShare}
+          onMinimize={() => setIsPipMode(true)}
+          localStreamRef={localStreamRef}
+          remoteStreamRef={remoteStreamRef}
+        />
+      )}
+      {activeCall && isPipMode && (
+        <CallPipWidget
+          call={activeCall}
+          duration={callDuration}
+          formatDuration={formatCallDuration}
+          isMuted={callMuted}
+          onEndCall={endCall}
+          onToggleMute={toggleCallMute}
+          onExpand={() => setIsPipMode(false)}
           localStreamRef={localStreamRef}
           remoteStreamRef={remoteStreamRef}
         />
