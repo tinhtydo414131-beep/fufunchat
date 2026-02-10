@@ -96,14 +96,24 @@ export function MessageContextMenu({
   // Desktop right-click handler
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      console.log("[ContextMenu] right-click fired", { disabled, isMobile });
       if (disabled) return;
       e.preventDefault();
       e.stopPropagation();
       setPosition({ x: e.clientX, y: e.clientY });
       setOpen(true);
     },
-    [disabled, isMobile]
+    [disabled]
+  );
+
+  // Fallback: right-click via mousedown button===2
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 2 || disabled) return;
+      e.preventDefault();
+      setPosition({ x: e.clientX, y: e.clientY });
+      setOpen(true);
+    },
+    [disabled]
   );
 
   // Close the menu on any click/touch outside
@@ -176,6 +186,7 @@ export function MessageContextMenu({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
+        onMouseDown={handleMouseDown}
       >
         {children}
       </div>
