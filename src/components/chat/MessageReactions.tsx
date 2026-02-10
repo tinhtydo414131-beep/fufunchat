@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,6 +29,9 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [detailEmoji, setDetailEmoji] = useState<string | null>(null);
+  const [detailNames, setDetailNames] = useState<string[]>([]);
+  const [loadingNames, setLoadingNames] = useState(false);
 
   useEffect(() => {
     loadReactions();
@@ -68,11 +71,9 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
 
     const existing = reactions.find((r) => r.emoji === emoji && r.user_id === user.id);
     if (existing) {
-      // Remove
       setReactions((prev) => prev.filter((r) => r.id !== existing.id));
       await supabase.from("reactions").delete().eq("id", existing.id);
     } else {
-      // Add
       const tempId = crypto.randomUUID();
       setReactions((prev) => [...prev, { id: tempId, emoji, user_id: user.id }]);
       const { data, error } = await supabase
@@ -88,22 +89,78 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
     }
   };
 
+  const showReactors = useCallback(async (g: GroupedReaction) => {
+    setDetailEmoji(g.emoji);
+    setLoadingNames(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .in("user_id", g.userIds);
+    setDetailNames(
+      data?.map((p) => (p.user_id === user?.id ? "You" : p.display_name)) || []
+    );
+    setLoadingNames(false);
+  }, [user?.id]);
+
   return (
     <div className={cn("flex items-center gap-1 flex-wrap", isMe && "justify-end")}>
       {grouped.map((g) => (
-        <button
+        <Popover
           key={g.emoji}
-          onClick={() => toggleReaction(g.emoji)}
-          className={cn(
-            "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors border",
-            g.myReactionId
-              ? "bg-primary/15 border-primary/30 text-primary"
-              : "bg-muted/80 border-transparent hover:bg-muted text-foreground"
-          )}
+          open={detailEmoji === g.emoji}
+          onOpenChange={(open) => {
+            if (!open) setDetailEmoji(null);
+          }}
         >
-          <span>{g.emoji}</span>
-          <span className="font-medium min-w-[0.75rem] text-center">{g.count}</span>
-        </button>
+          <PopoverTrigger asChild>
+            <button
+              onClick={() => {
+                toggleReaction(g.emoji);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                showReactors(g);
+              }}
+              onTouchEnd={(e) => {
+                // Long-press is handled by parent; single tap toggles.
+                // We use a separate detail trigger below.
+              }}
+              className={cn(
+                "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors border",
+                g.myReactionId
+                  ? "bg-primary/15 border-primary/30 text-primary"
+                  : "bg-muted/80 border-transparent hover:bg-muted text-foreground"
+              )}
+            >
+              <span>{g.emoji}</span>
+              <span
+                className="font-medium min-w-[0.75rem] text-center underline decoration-dotted cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showReactors(g);
+                }}
+              >
+                {g.count}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-auto max-w-[200px] p-2"
+            side="top"
+            align={isMe ? "end" : "start"}
+          >
+            <div className="text-xs space-y-1">
+              <p className="font-semibold text-center text-base">{g.emoji}</p>
+              {loadingNames ? (
+                <p className="text-muted-foreground">Loading…</p>
+              ) : (
+                detailNames.map((name, i) => (
+                  <p key={i} className="text-foreground">{name}</p>
+                ))
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       ))}
 
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
