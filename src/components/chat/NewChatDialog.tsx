@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageCircle, Users, X, Check, Mail, Copy } from "lucide-react";
+import { Search, MessageCircle, Users, X, Check, Mail, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useI18n";
@@ -327,23 +327,44 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
               </button>
             )}
 
-            {emailNotFound && (
-              <div className="text-center py-6 space-y-3">
-                <p className="text-sm text-muted-foreground">No user found with that email.</p>
-                <p className="text-xs text-muted-foreground">They might not have signed up yet — invite them!</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const link = `${window.location.origin}/auth`;
-                    navigator.clipboard.writeText(link);
-                    toast.success("Signup link copied! Share it with your friend.");
-                  }}
-                >
-                  <Copy className="w-4 h-4 mr-1.5" /> Copy Invite Link
-                </Button>
-              </div>
-            )}
+            {emailNotFound && (() => {
+              const link = `${window.location.origin}/auth`;
+              const msg = encodeURIComponent(`Join me on FUN Chat! Sign up here: ${link}`);
+              return (
+                <div className="text-center py-6 space-y-3">
+                  <p className="text-sm text-muted-foreground">No user found with that email.</p>
+                  <p className="text-xs text-muted-foreground">They might not have signed up yet — invite them!</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(link);
+                        toast.success("Signup link copied!");
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-1.5" /> Copy Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                      onClick={() => window.open(`https://wa.me/?text=${msg}`, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1.5" /> WhatsApp
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-primary border-primary/20 hover:bg-primary/5"
+                      onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Join me on FUN Chat!")}`, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1.5" /> Telegram
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="group" className="space-y-4 mt-4">
