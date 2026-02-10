@@ -15,6 +15,7 @@ const CONFETTI_COLORS = [
 ];
 
 const SNOW_EMOJIS = ["❄️", "☃️", "⛄", "🌨️", "🏔️"];
+const FIRE_EMOJIS = ["🔥"];
 
 interface Particle {
   id: number;
@@ -36,6 +37,11 @@ export function isCelebrationMessage(content: string | null): boolean {
 export function isSnowMessage(content: string | null): boolean {
   if (!content) return false;
   return SNOW_EMOJIS.some((e) => content.includes(e));
+}
+
+export function isFireMessage(content: string | null): boolean {
+  if (!content) return false;
+  return FIRE_EMOJIS.some((e) => content.includes(e));
 }
 
 export function ConfettiRain({ onDone }: { onDone: () => void }) {
@@ -145,5 +151,64 @@ export function useSnow() {
   const [active, setActive] = useState(false);
   const trigger = useCallback(() => setActive(true), []);
   const element = active ? <SnowFall onDone={() => setActive(false)} /> : null;
+  return { trigger, element };
+}
+
+interface FireParticle {
+  id: number;
+  x: number;
+  delay: number;
+  duration: number;
+  size: number;
+  drift: number;
+  hue: number;
+}
+
+export function FireRise({ onDone }: { onDone: () => void }) {
+  const [particles] = useState<FireParticle[]>(() =>
+    Array.from({ length: 45 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      delay: Math.random() * 1.2,
+      duration: 1.5 + Math.random() * 2,
+      size: 10 + Math.random() * 20,
+      drift: (Math.random() - 0.5) * 60,
+      hue: Math.random() * 40, // 0 = red, 40 = orange-yellow
+    }))
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(onDone, 4500);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return createPortal(
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 9999 }}>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="fire-particle"
+          style={{
+            left: `${p.x}%`,
+            fontSize: p.size,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            "--fire-drift": `${p.drift}px`,
+            "--fire-hue": p.hue,
+          } as React.CSSProperties}
+        >
+          🔥
+        </div>
+      ))}
+      <div className="fire-glow-bar" />
+    </div>,
+    document.body
+  );
+}
+
+export function useFire() {
+  const [active, setActive] = useState(false);
+  const trigger = useCallback(() => setActive(true), []);
+  const element = active ? <FireRise onDone={() => setActive(false)} /> : null;
   return { trigger, element };
 }
