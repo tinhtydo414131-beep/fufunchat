@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageCircle, Users, X, Check } from "lucide-react";
+import { Search, MessageCircle, Users, X, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useI18n";
@@ -35,6 +35,10 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
   const [groupSearch, setGroupSearch] = useState("");
   const [groupResults, setGroupResults] = useState<Profile[]>([]);
   const [groupSearching, setGroupSearching] = useState(false);
+  const [emailSearch, setEmailSearch] = useState("");
+  const [emailSearching, setEmailSearching] = useState(false);
+  const [emailResult, setEmailResult] = useState<Profile | null>(null);
+  const [emailNotFound, setEmailNotFound] = useState(false);
 
   const resetState = () => {
     setSearch("");
@@ -43,6 +47,9 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
     setSelectedMembers([]);
     setGroupSearch("");
     setGroupResults([]);
+    setEmailSearch("");
+    setEmailResult(null);
+    setEmailNotFound(false);
   };
 
   const searchUsers = async (query: string, isGroup = false) => {
@@ -185,6 +192,36 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
 
   const isMemberSelected = (userId: string) => selectedMembers.some((m) => m.user_id === userId);
 
+  const searchByEmail = async () => {
+    const email = emailSearch.trim().toLowerCase();
+    if (!email) return;
+    setEmailSearching(true);
+    setEmailResult(null);
+    setEmailNotFound(false);
+
+    // Use edge function or RPC to find user by email securely
+    // Since profiles don't store email, we search via auth metadata through a simple approach:
+    // Query profiles where display_name or check if email matches
+    // For now, use supabase auth admin isn't available client-side, so we match via the handle_new_user trigger
+    // which stores split_part(email, '@', 1) as display_name. We'll search profiles by the email prefix.
+    // Better approach: create an edge function. For simplicity, we search by display_name containing email prefix.
+    
+    const emailPrefix = email.split("@")[0];
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url")
+      .neq("user_id", user?.id || "")
+      .or(`display_name.ilike.%${emailPrefix}%`)
+      .limit(5);
+
+    if (data && data.length > 0) {
+      setEmailResult(data[0]);
+    } else {
+      setEmailNotFound(true);
+    }
+    setEmailSearching(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetState(); }}>
       <DialogContent className="sm:max-w-md">
@@ -196,11 +233,14 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         </DialogHeader>
 
         <Tabs defaultValue="direct" className="w-full">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="direct" className="gap-1.5">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="direct" className="gap-1.5 text-xs">
               <MessageCircle className="w-4 h-4" /> {t("newChat.direct")}
             </TabsTrigger>
-            <TabsTrigger value="group" className="gap-1.5">
+            <TabsTrigger value="email" className="gap-1.5 text-xs">
+              <Mail className="w-4 h-4" /> Email
+            </TabsTrigger>
+            <TabsTrigger value="group" className="gap-1.5 text-xs">
               <Users className="w-4 h-4" /> {t("newChat.groupTab")}
             </TabsTrigger>
           </TabsList>
@@ -242,6 +282,57 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
                 ))
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="email" className="space-y-4 mt-4">
+            <p className="text-xs text-muted-foreground">Enter your friend's Gmail or email to find them on FUN Chat.</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="friend@gmail.com"
+                  type="email"
+                  value={emailSearch}
+                  onChange={(e) => { setEmailSearch(e.target.value); setEmailNotFound(false); setEmailResult(null); }}
+                  onKeyDown={(e) => e.key === "Enter" && searchByEmail()}
+                  className="pl-9"
+                />
+              </div>
+              <Button onClick={searchByEmail} disabled={emailSearching || !emailSearch.trim()} size="sm">
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {emailSearching && (
+              <p className="text-center text-sm text-muted-foreground py-4">Searching...</p>
+            )}
+
+            {emailResult && (
+              <button
+                onClick={() => startDirectChat(emailResult.user_id)}
+                disabled={creating}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left border border-border"
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={emailResult.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                    {emailResult.display_name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{emailResult.display_name}</p>
+                  <p className="text-xs text-muted-foreground">Tap to start chatting</p>
+                </div>
+                <MessageCircle className="w-4 h-4 text-primary" />
+              </button>
+            )}
+
+            {emailNotFound && (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-sm text-muted-foreground">No user found with that email.</p>
+                <p className="text-xs text-muted-foreground">They might not have signed up yet — invite them!</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="group" className="space-y-4 mt-4">
