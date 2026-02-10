@@ -14,6 +14,7 @@ import { MessageReactions } from "./MessageReactions";
 import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
+import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -1017,6 +1018,17 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 disabled={msg.is_deleted}
                 onSwipeReply={() => { setReplyTo(msg); inputRef.current?.focus(); }}
               >
+              <MobileLongPressMenu
+                isMe={isMe}
+                disabled={msg.is_deleted}
+                isPinned={pinnedMessageIds.has(msg.id)}
+                onReply={() => { setReplyTo(msg); inputRef.current?.focus(); }}
+                onForward={() => setForwardMsg(msg)}
+                onPin={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
+                onDelete={isMe ? () => deleteMessage(msg) : undefined}
+                onEdit={isMe && msg.type === "text" ? () => { setEditingMsg(msg); setEditText(msg.content || ""); } : undefined}
+                onCopy={msg.type === "text" && msg.content ? () => { navigator.clipboard.writeText(msg.content || ""); } : undefined}
+              >
               <div id={`msg-${msg.id}`} className={cn(
                 "flex gap-2 group/msg transition-colors duration-300",
                 isMe ? "flex-row-reverse" : "flex-row",
@@ -1202,6 +1214,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                   </div>
                 </div>
               </div>
+              </MobileLongPressMenu>
               </SwipeToReply>
             );
           })
