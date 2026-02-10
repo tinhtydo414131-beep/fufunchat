@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,6 +32,17 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
   const [detailEmoji, setDetailEmoji] = useState<string | null>(null);
   const [detailNames, setDetailNames] = useState<string[]>([]);
   const [loadingNames, setLoadingNames] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<{ id: string; emoji: string; x: number }[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const spawnFloatingEmoji = (emoji: string, originEl?: HTMLElement) => {
+    const x = originEl
+      ? originEl.offsetLeft + originEl.offsetWidth / 2 - 12
+      : Math.random() * 60;
+    const id = crypto.randomUUID();
+    setFloatingEmojis((prev) => [...prev, { id, emoji, x }]);
+    setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 900);
+  };
 
   useEffect(() => {
     loadReactions();
@@ -74,8 +85,8 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
       setReactions((prev) => prev.filter((r) => r.id !== existing.id));
       await supabase.from("reactions").delete().eq("id", existing.id);
     } else {
+      spawnFloatingEmoji(emoji);
       const tempId = crypto.randomUUID();
-      setReactions((prev) => [...prev, { id: tempId, emoji, user_id: user.id }]);
       const { data, error } = await supabase
         .from("reactions")
         .insert({ message_id: messageId, emoji, user_id: user.id })
@@ -103,7 +114,18 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
   }, [user?.id]);
 
   return (
-    <div className={cn("flex items-center gap-1 flex-wrap", isMe && "justify-end")}>
+    <div ref={containerRef} className={cn("relative flex items-center gap-1 flex-wrap", isMe && "justify-end")}>
+      {/* Floating emoji particles */}
+      {floatingEmojis.map((fe) => (
+        <span
+          key={fe.id}
+          className="emoji-float-particle"
+          style={{ left: fe.x, bottom: '100%' }}
+        >
+          {fe.emoji}
+        </span>
+      ))}
+
       {grouped.map((g) => (
         <Popover
           key={g.emoji}
@@ -114,7 +136,7 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
         >
           <PopoverTrigger asChild>
             <button
-              onClick={() => {
+              onClick={(e) => {
                 toggleReaction(g.emoji);
               }}
               onContextMenu={(e) => {
@@ -123,7 +145,6 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
               }}
               onTouchEnd={(e) => {
                 // Long-press is handled by parent; single tap toggles.
-                // We use a separate detail trigger below.
               }}
               className={cn(
                 "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors border",
