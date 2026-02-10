@@ -8,17 +8,12 @@ export function usePushNotifications() {
 
   const getVapidKey = useCallback(async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke("push-notifications", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        body: undefined,
-      });
-      // supabase.functions.invoke uses POST by default, we need GET with query param
-      // Use fetch directly for GET requests
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/push-notify?action=vapid-key`,
         {
+          method: "POST",
           headers: {
+            "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
         }
