@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -94,7 +94,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
-  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null } | null>(null);
+  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(false);
+  const [announcementDraft, setAnnouncementDraft] = useState("");
   const [disappearMenuOpen, setDisappearMenuOpen] = useState(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -392,11 +396,38 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       )
       .subscribe();
 
+    // Listen for conversation updates (announcements, name, description)
+    const convChannel = supabase
+      .channel(`conv:${conversationId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` },
+        (payload) => {
+          const updated = payload.new as any;
+          setConvInfo((prev) => {
+            if (!prev) return prev;
+            // Play sound if announcement changed and is not empty
+            if (updated.announcement && updated.announcement !== prev.announcement) {
+              playNotificationSound();
+            }
+            return {
+              ...prev,
+              announcement: updated.announcement || null,
+              description: updated.description || null,
+              name: updated.name || prev.name,
+            };
+          });
+          setAnnouncementDismissed(false);
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(typingChannel);
       supabase.removeChannel(readChannel);
       supabase.removeChannel(pinChannel);
+      supabase.removeChannel(convChannel);
     };
   }, [conversationId, user?.id]);
 
@@ -474,9 +505,18 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     if (!conversationId || !user) return;
     const { data: conv } = await supabase
       .from("conversations")
-      .select("type, name, disappear_after")
+      .select("type, name, disappear_after, description, announcement")
       .eq("id", conversationId)
       .maybeSingle();
+
+    // Check if current user is admin
+    const { data: memberData } = await supabase
+      .from("conversation_members")
+      .select("role")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setIsAdmin(memberData?.role === "admin");
 
     const { count } = await supabase
       .from("conversation_members")
@@ -504,7 +544,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     }
 
     if (conv) {
-      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0, otherUserId, otherUserName, disappearAfter: (conv as any).disappear_after });
+      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0, otherUserId, otherUserName, disappearAfter: (conv as any).disappear_after, announcement: (conv as any).announcement, description: (conv as any).description });
     }
   };
 
@@ -989,7 +1029,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           </Button>
         </div>
       )}
-      {convInfo && convInfo.type === "group" && (
+      {convInfo && (convInfo.type === "group" || convInfo.type === "channel") && (
         <div className="px-4 py-2.5 bg-primary text-primary-foreground flex items-center gap-3">
           <button
             type="button"
@@ -1004,6 +1044,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
               <p className="text-xs text-primary-foreground/70">{convInfo.memberCount} {t("chat.members")}</p>
             </div>
           </button>
+          {isAdmin && convInfo.type === "channel" && (
+            <Button variant="ghost" size="icon" onClick={() => { setAnnouncementDraft(convInfo.announcement || ""); setEditingAnnouncement(true); }} title="Set announcement" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+              <Megaphone className="w-4 h-4" />
+            </Button>
+          )}
           {onStartCall && (
             <>
               <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
@@ -1077,6 +1122,54 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           <span className="text-xs text-primary font-medium">
             Disappearing messages: {DISAPPEAR_OPTIONS.find((o) => o.value === convInfo.disappearAfter)?.label || "On"}
           </span>
+        </div>
+      )}
+
+      {/* Announcement banner */}
+      {convInfo?.type === "channel" && (convInfo.announcement || editingAnnouncement) && !announcementDismissed && (
+        <div className="px-4 py-2.5 border-b border-border bg-accent/30 animate-fade-in">
+          {editingAnnouncement ? (
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-primary shrink-0" />
+              <textarea
+                className="flex-1 bg-transparent text-sm border border-border rounded-md px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                rows={2}
+                value={announcementDraft}
+                onChange={(e) => setAnnouncementDraft(e.target.value)}
+                placeholder="Type announcement..."
+                autoFocus
+              />
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => {
+                await supabase.from("conversations").update({ announcement: announcementDraft.trim() || null } as any).eq("id", conversationId);
+                setEditingAnnouncement(false);
+              }}>
+                <Check className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingAnnouncement(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-sm flex-1">{convInfo.announcement}</span>
+              {isAdmin && (
+                <>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setAnnouncementDraft(convInfo.announcement || ""); setEditingAnnouncement(true); }}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={async () => {
+                    await supabase.from("conversations").update({ announcement: null } as any).eq("id", conversationId);
+                  }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              )}
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setAnnouncementDismissed(true)}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
