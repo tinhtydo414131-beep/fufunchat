@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2 } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Monitor, MonitorOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CallState } from "@/hooks/useCall";
@@ -11,10 +11,12 @@ interface ActiveCallOverlayProps {
   isMuted: boolean;
   isVideoEnabled: boolean;
   isSpeaker: boolean;
+  isScreenSharing?: boolean;
   onEndCall: () => void;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleSpeaker: () => void;
+  onToggleScreenShare?: () => void;
   localStreamRef: React.MutableRefObject<MediaStream | null>;
   remoteStreamRef: React.MutableRefObject<MediaStream | null>;
 }
@@ -26,10 +28,12 @@ export function ActiveCallOverlay({
   isMuted,
   isVideoEnabled,
   isSpeaker,
+  isScreenSharing = false,
   onEndCall,
   onToggleMute,
   onToggleVideo,
   onToggleSpeaker,
+  onToggleScreenShare,
   localStreamRef,
   remoteStreamRef,
 }: ActiveCallOverlayProps) {
@@ -53,6 +57,10 @@ export function ActiveCallOverlay({
     const interval = setInterval(() => {
       if (remoteVideoRef.current && remoteStreamRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
         remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      }
+      // Also refresh local video when screen sharing changes
+      if (localVideoRef.current && localStreamRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
       }
     }, 500);
     return () => clearInterval(interval);
@@ -80,8 +88,18 @@ export function ActiveCallOverlay({
               autoPlay
               playsInline
               muted
-              className="absolute top-4 right-4 w-32 h-44 rounded-2xl object-cover border-2 border-background shadow-lg z-10"
+              className={cn(
+                "absolute top-4 right-4 rounded-2xl object-cover border-2 border-background shadow-lg z-10",
+                isScreenSharing ? "w-48 h-28" : "w-32 h-44"
+              )}
             />
+            {/* Screen sharing indicator */}
+            {isScreenSharing && (
+              <div className="absolute top-4 left-4 z-20 bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                <Monitor className="w-3.5 h-3.5" />
+                Sharing screen
+              </div>
+            )}
             {/* Dark overlay for controls visibility */}
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
           </>
@@ -110,7 +128,7 @@ export function ActiveCallOverlay({
 
       {/* Controls */}
       <div className={cn(
-        "pb-12 pt-6 px-6 flex items-center justify-center gap-5",
+        "pb-12 pt-6 px-6 flex items-center justify-center gap-4",
         isVideo ? "absolute bottom-0 inset-x-0 z-20" : ""
       )}>
         <Button
@@ -136,6 +154,21 @@ export function ActiveCallOverlay({
             size="icon"
           >
             {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+          </Button>
+        )}
+
+        {isVideo && onToggleScreenShare && (
+          <Button
+            onClick={onToggleScreenShare}
+            variant="ghost"
+            className={cn(
+              "w-14 h-14 rounded-full",
+              isScreenSharing ? "bg-primary/20 text-primary" : "bg-muted text-foreground"
+            )}
+            size="icon"
+            title={isScreenSharing ? "Stop sharing" : "Share screen"}
+          >
+            {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
           </Button>
         )}
 

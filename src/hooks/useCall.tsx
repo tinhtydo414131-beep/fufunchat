@@ -22,12 +22,15 @@ export function useCall() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const originalVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const signalingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -41,6 +44,11 @@ export function useCall() {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
+    originalVideoTrackRef.current = null;
     remoteStreamRef.current = null;
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
@@ -57,6 +65,7 @@ export function useCall() {
     setCallDuration(0);
     setIsMuted(false);
     setIsVideoEnabled(true);
+    setIsScreenSharing(false);
     setActiveCall(null);
     setIncomingCall(null);
   }, []);
@@ -326,8 +335,68 @@ export function useCall() {
 
   const toggleSpeaker = useCallback(() => {
     setIsSpeaker((s) => !s);
-    // Speaker toggle is mostly relevant on mobile - handled via audio element
   }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+
+    if (isScreenSharing) {
+      // Stop screen sharing, restore camera
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+      }
+      if (originalVideoTrackRef.current) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) {
+          await sender.replaceTrack(originalVideoTrackRef.current);
+        }
+        // Update local stream for PiP display
+        if (localStreamRef.current) {
+          const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (oldVideoTrack) localStreamRef.current.removeTrack(oldVideoTrack);
+          localStreamRef.current.addTrack(originalVideoTrackRef.current);
+        }
+        originalVideoTrackRef.current = null;
+      }
+      setIsScreenSharing(false);
+      toast.info("Screen sharing stopped");
+    } else {
+      // Start screen sharing
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = screenStream;
+
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+
+        if (sender) {
+          // Save original camera track
+          originalVideoTrackRef.current = sender.track;
+          await sender.replaceTrack(screenTrack);
+
+          // Update local stream for PiP display
+          if (localStreamRef.current) {
+            const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+            if (oldVideoTrack) localStreamRef.current.removeTrack(oldVideoTrack);
+            localStreamRef.current.addTrack(screenTrack);
+          }
+        }
+
+        // Auto-stop when user clicks "Stop sharing" in browser UI
+        screenTrack.onended = () => {
+          toggleScreenShare();
+        };
+
+        setIsScreenSharing(true);
+        toast.success("Screen sharing started");
+      } catch (err) {
+        console.error("Screen share error:", err);
+        // User cancelled the picker - no error toast needed
+      }
+    }
+  }, [isScreenSharing]);
 
   // Listen for incoming calls
   useEffect(() => {
@@ -431,6 +500,7 @@ export function useCall() {
     isMuted,
     isVideoEnabled,
     isSpeaker,
+    isScreenSharing,
     startCall,
     answerCall,
     declineCall,
@@ -438,6 +508,7 @@ export function useCall() {
     toggleMute,
     toggleVideo,
     toggleSpeaker,
+    toggleScreenShare,
     localVideoRef,
     remoteVideoRef,
     localStreamRef,
