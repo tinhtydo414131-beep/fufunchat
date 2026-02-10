@@ -15,6 +15,7 @@ import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
+import { useConfetti, isCelebrationMessage } from "./ConfettiEffect";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -66,6 +67,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { t } = useTranslation();
   const { sendNotification } = useNotifications();
   const { getUserStatus, statusMap } = useUserStatus();
+  const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
   const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -283,6 +285,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, { ...newMsg, sender: profile || undefined }];
           });
+
+          // Trigger confetti for incoming celebration messages
+          if (isCelebrationMessage(newMsg.content)) triggerConfetti();
         }
       )
       .subscribe();
@@ -517,6 +522,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           reply_to: replyTo?.id || null,
         });
         if (error) setNewMessage(content);
+        else if (isCelebrationMessage(content)) triggerConfetti();
       }
 
       await supabase
@@ -821,6 +827,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   }
 
   return (
+    <>
+    {confettiElement}
     <div
       className="flex-1 flex flex-col bg-background relative min-h-0"
       onDragEnter={(e) => {
@@ -1516,5 +1524,6 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
         currentConversationId={conversationId}
       />
     </div>
+    </>
   );
 }
