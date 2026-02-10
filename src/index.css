@@ -2,114 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 260 40% 98%;
-    --foreground: 260 30% 15%;
+    --background: 0 0% 96.5%;
+    --foreground: 210 11% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 260 30% 15%;
+    --card-foreground: 210 11% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 260 30% 15%;
+    --popover-foreground: 210 11% 15%;
 
-    --primary: 270 70% 60%;
+    --primary: 210 78% 46%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 80% 92%;
-    --secondary-foreground: 200 60% 30%;
+    --secondary: 210 20% 93%;
+    --secondary-foreground: 210 15% 30%;
 
-    --muted: 260 25% 94%;
-    --muted-foreground: 260 15% 50%;
+    --muted: 210 14% 93%;
+    --muted-foreground: 210 8% 50%;
 
-    --accent: 30 90% 90%;
-    --accent-foreground: 30 70% 30%;
+    --accent: 210 30% 94%;
+    --accent-foreground: 210 15% 25%;
 
-    --destructive: 0 72% 60%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 260 20% 90%;
-    --input: 260 20% 90%;
-    --ring: 270 70% 60%;
+    --border: 210 14% 89%;
+    --input: 210 14% 89%;
+    --ring: 210 78% 46%;
 
-    --radius: 1.25rem;
+    --radius: 0.75rem;
     --chat-font-size: 14px;
 
-    --sidebar-background: 260 30% 99%;
-    --sidebar-foreground: 260 30% 15%;
-    --sidebar-primary: 270 70% 60%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 11% 15%;
+    --sidebar-primary: 210 78% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 50% 95%;
-    --sidebar-accent-foreground: 260 30% 15%;
-    --sidebar-border: 260 20% 92%;
-    --sidebar-ring: 270 70% 60%;
+    --sidebar-accent: 210 30% 94%;
+    --sidebar-accent-foreground: 210 11% 15%;
+    --sidebar-border: 210 14% 91%;
+    --sidebar-ring: 210 78% 46%;
 
-    --fun-mint: 170 55% 82%;
-    --fun-pink: 310 70% 88%;
-    --fun-gold: 40 95% 85%;
-    --fun-lavender: 270 50% 90%;
-    --fun-blue: 220 80% 65%;
-    --fun-orange: 25 90% 60%;
-    --fun-purple: 280 70% 60%;
-    --fun-cyan: 185 70% 75%;
+    --fun-mint: 160 45% 82%;
+    --fun-pink: 340 60% 88%;
+    --fun-gold: 40 85% 85%;
+    --fun-lavender: 230 40% 90%;
+    --fun-blue: 210 78% 55%;
+    --fun-orange: 25 80% 55%;
+    --fun-purple: 260 55% 55%;
+    --fun-cyan: 190 60% 75%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 80% 60%), hsl(270 70% 60%), hsl(310 70% 60%));
-    --gradient-warm: linear-gradient(135deg, hsl(270 70% 60%), hsl(25 90% 60%));
-    --gradient-cool: linear-gradient(135deg, hsl(185 70% 60%), hsl(220 80% 65%), hsl(270 70% 60%));
+    --gradient-primary: linear-gradient(135deg, hsl(210 78% 46%), hsl(210 78% 56%));
+    --gradient-warm: linear-gradient(135deg, hsl(210 78% 46%), hsl(210 60% 60%));
+    --gradient-cool: linear-gradient(135deg, hsl(195 70% 50%), hsl(210 78% 46%));
+
+    /* Telegram-specific tokens */
+    --tg-msg-out: 120 38% 88%;
+    --tg-msg-in: 0 0% 100%;
+    --tg-chat-bg: 200 25% 84%;
+    --tg-header: 210 78% 46%;
   }
 
   .dark {
-    --background: 260 25% 8%;
-    --foreground: 260 15% 92%;
+    --background: 210 15% 10%;
+    --foreground: 210 10% 90%;
 
-    --card: 260 22% 12%;
-    --card-foreground: 260 15% 92%;
+    --card: 210 15% 14%;
+    --card-foreground: 210 10% 90%;
 
-    --popover: 260 22% 12%;
-    --popover-foreground: 260 15% 92%;
+    --popover: 210 15% 14%;
+    --popover-foreground: 210 10% 90%;
 
-    --primary: 270 65% 65%;
+    --primary: 210 70% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 40% 18%;
-    --secondary-foreground: 200 50% 80%;
+    --secondary: 210 12% 20%;
+    --secondary-foreground: 210 15% 80%;
 
-    --muted: 260 18% 18%;
-    --muted-foreground: 260 12% 60%;
+    --muted: 210 12% 18%;
+    --muted-foreground: 210 8% 55%;
 
-    --accent: 30 50% 20%;
-    --accent-foreground: 30 60% 85%;
+    --accent: 210 15% 22%;
+    --accent-foreground: 210 10% 88%;
 
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 260 18% 20%;
-    --input: 260 18% 22%;
-    --ring: 270 65% 65%;
+    --border: 210 12% 22%;
+    --input: 210 12% 22%;
+    --ring: 210 70% 55%;
 
-    --sidebar-background: 260 25% 10%;
-    --sidebar-foreground: 260 15% 90%;
-    --sidebar-primary: 270 65% 65%;
+    --sidebar-background: 210 15% 12%;
+    --sidebar-foreground: 210 10% 90%;
+    --sidebar-primary: 210 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 20% 16%;
-    --sidebar-accent-foreground: 260 15% 90%;
-    --sidebar-border: 260 18% 18%;
-    --sidebar-ring: 270 65% 65%;
+    --sidebar-accent: 210 12% 18%;
+    --sidebar-accent-foreground: 210 10% 88%;
+    --sidebar-border: 210 12% 20%;
+    --sidebar-ring: 210 70% 55%;
 
-    --fun-mint: 170 30% 25%;
-    --fun-pink: 310 35% 25%;
-    --fun-gold: 40 45% 22%;
-    --fun-lavender: 270 25% 22%;
-    --fun-blue: 220 50% 35%;
-    --fun-orange: 25 55% 30%;
-    --fun-purple: 280 40% 30%;
-    --fun-cyan: 185 35% 25%;
+    --fun-mint: 160 25% 22%;
+    --fun-pink: 340 30% 22%;
+    --fun-gold: 40 40% 20%;
+    --fun-lavender: 230 20% 20%;
+    --fun-blue: 210 50% 35%;
+    --fun-orange: 25 50% 28%;
+    --fun-purple: 260 35% 28%;
+    --fun-cyan: 190 30% 22%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 60% 45%), hsl(270 50% 50%), hsl(310 50% 50%));
-    --gradient-warm: linear-gradient(135deg, hsl(270 50% 50%), hsl(25 70% 45%));
-    --gradient-cool: linear-gradient(135deg, hsl(185 50% 40%), hsl(220 60% 45%), hsl(270 50% 50%));
+    --gradient-primary: linear-gradient(135deg, hsl(210 50% 40%), hsl(210 50% 50%));
+    --gradient-warm: linear-gradient(135deg, hsl(210 50% 40%), hsl(210 40% 50%));
+    --gradient-cool: linear-gradient(135deg, hsl(195 45% 35%), hsl(210 50% 40%));
+
+    --tg-msg-out: 210 25% 25%;
+    --tg-msg-in: 210 15% 18%;
+    --tg-chat-bg: 210 15% 12%;
+    --tg-header: 210 50% 30%;
   }
 }
 
@@ -127,25 +138,25 @@
   }
 
   html {
-    transition: color 0.3s ease, background-color 0.3s ease;
+    transition: color 0.2s ease, background-color 0.2s ease;
   }
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Nunito', sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   [dir="rtl"] body {
-    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Nunito', sans-serif;
+    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Inter', sans-serif;
   }
 
   [lang="he"] body {
-    font-family: 'Noto Sans Hebrew', 'Nunito', sans-serif;
+    font-family: 'Noto Sans Hebrew', 'Inter', sans-serif;
   }
 
   [lang="fa"] body {
-    font-family: 'Vazirmatn', 'Nunito', sans-serif;
+    font-family: 'Vazirmatn', 'Inter', sans-serif;
   }
 
   [dir="rtl"] h1,
@@ -154,7 +165,7 @@
   [dir="rtl"] h4,
   [dir="rtl"] h5,
   [dir="rtl"] h6 {
-    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Baloo 2', sans-serif;
+    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Inter', sans-serif;
   }
 
   [lang="he"] h1,
@@ -163,7 +174,7 @@
   [lang="he"] h4,
   [lang="he"] h5,
   [lang="he"] h6 {
-    font-family: 'Noto Sans Hebrew', 'Baloo 2', sans-serif;
+    font-family: 'Noto Sans Hebrew', 'Inter', sans-serif;
   }
 
   [lang="fa"] h1,
@@ -172,19 +183,20 @@
   [lang="fa"] h4,
   [lang="fa"] h5,
   [lang="fa"] h6 {
-    font-family: 'Vazirmatn', 'Baloo 2', sans-serif;
+    font-family: 'Vazirmatn', 'Inter', sans-serif;
   }
 
   *,
   *::before,
   *::after {
     transition-property: background-color, border-color, box-shadow, color, fill, stroke;
-    transition-duration: 0.3s;
+    transition-duration: 0.15s;
     transition-timing-function: ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Baloo 2', 'Quicksand', sans-serif;
+    font-family: 'Inter', 'Roboto', system-ui, sans-serif;
+    font-weight: 600;
   }
 }
 
@@ -211,13 +223,25 @@
     background-clip: text;
   }
   .fun-shadow {
-    box-shadow: 0 4px 20px -4px hsl(270 70% 60% / 0.25), 0 2px 8px -2px hsl(220 80% 65% / 0.15);
+    box-shadow: 0 1px 3px 0 hsl(210 10% 30% / 0.08), 0 1px 2px -1px hsl(210 10% 30% / 0.08);
   }
   .fun-shadow-lg {
-    box-shadow: 0 8px 32px -6px hsl(270 70% 60% / 0.3), 0 4px 16px -4px hsl(25 90% 60% / 0.15);
+    box-shadow: 0 4px 12px -2px hsl(210 10% 30% / 0.12), 0 2px 6px -2px hsl(210 10% 30% / 0.08);
   }
   .fun-glow {
-    box-shadow: 0 0 20px hsl(270 70% 60% / 0.2), 0 0 40px hsl(220 80% 65% / 0.1);
+    box-shadow: 0 0 12px hsl(210 78% 46% / 0.15);
+  }
+  .tg-msg-out {
+    background-color: hsl(var(--tg-msg-out));
+  }
+  .tg-msg-in {
+    background-color: hsl(var(--tg-msg-in));
+  }
+  .tg-chat-bg {
+    background-color: hsl(var(--tg-chat-bg));
+  }
+  .tg-header {
+    background-color: hsl(var(--tg-header));
   }
 }
 
