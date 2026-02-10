@@ -2,9 +2,14 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+const QUICK_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🔥", "🎉", "👏"];
 
 interface MobileLongPressMenuProps {
   children: React.ReactNode;
+  messageId: string;
   onReply: () => void;
   onForward: () => void;
   onPin: () => void;
@@ -23,6 +28,7 @@ interface MenuPosition {
 
 export function MobileLongPressMenu({
   children,
+  messageId,
   onReply,
   onForward,
   onPin,
@@ -34,6 +40,7 @@ export function MobileLongPressMenu({
   disabled,
 }: MobileLongPressMenuProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,10 +66,7 @@ export function MobileLongPressMenu({
       timerRef.current = setTimeout(() => {
         if (!movedRef.current) {
           if (navigator.vibrate) navigator.vibrate(20);
-          // Position menu near the touch point
-          const x = touch.clientX;
-          const y = touch.clientY;
-          setPosition({ x, y });
+          setPosition({ x: touch.clientX, y: touch.clientY });
           setOpen(true);
         }
       }, LONG_PRESS_MS);
@@ -87,11 +91,9 @@ export function MobileLongPressMenu({
     clearTimer();
   }, [clearTimer]);
 
-  // Close on outside tap
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
-    // Delay adding listener so the current touch doesn't immediately close it
     const id = setTimeout(() => {
       document.addEventListener("touchstart", close, { once: true });
       document.addEventListener("click", close, { once: true });
@@ -102,6 +104,27 @@ export function MobileLongPressMenu({
       document.removeEventListener("click", close);
     };
   }, [open]);
+
+  const toggleReaction = async (emoji: string) => {
+    if (!user) return;
+    setOpen(false);
+
+    const { data: existing } = await supabase
+      .from("reactions")
+      .select("id")
+      .eq("message_id", messageId)
+      .eq("emoji", emoji)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from("reactions").delete().eq("id", existing.id);
+    } else {
+      await supabase
+        .from("reactions")
+        .insert({ message_id: messageId, emoji, user_id: user.id });
+    }
+  };
 
   const menuItems = [
     { icon: Reply, label: "Reply", action: onReply, show: true },
@@ -117,9 +140,9 @@ export function MobileLongPressMenu({
     action?.();
   };
 
-  // Compute safe menu position
-  const menuWidth = 180;
-  const menuHeight = menuItems.length * 44 + 8;
+  const menuWidth = 220;
+  const emojiRowHeight = 48;
+  const menuHeight = menuItems.length * 44 + emojiRowHeight + 8;
   const safeX = Math.min(Math.max(position.x - menuWidth / 2, 8), window.innerWidth - menuWidth - 8);
   const safeY = position.y - menuHeight - 12 > 0 ? position.y - menuHeight - 12 : position.y + 12;
 
@@ -137,19 +160,27 @@ export function MobileLongPressMenu({
 
       {open && (
         <div className="fixed inset-0 z-[100]" style={{ pointerEvents: "auto" }}>
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" onClick={() => setOpen(false)} />
 
-          {/* Menu */}
           <div
             className="absolute bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-in zoom-in-90 fade-in-0 duration-150"
-            style={{
-              left: safeX,
-              top: safeY,
-              width: menuWidth,
-            }}
+            style={{ left: safeX, top: safeY, width: menuWidth }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Quick emoji reactions row */}
+            <div className="flex items-center justify-around px-2 py-1.5 border-b border-border">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => toggleReaction(emoji)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-lg active:scale-125 transition-transform hover:bg-accent"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Action items */}
             {menuItems.map((item) => (
               <button
                 key={item.label}

@@ -1019,6 +1019,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 onSwipeReply={() => { setReplyTo(msg); inputRef.current?.focus(); }}
               >
               <MobileLongPressMenu
+                messageId={msg.id}
                 isMe={isMe}
                 disabled={msg.is_deleted}
                 isPinned={pinnedMessageIds.has(msg.id)}
