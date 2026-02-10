@@ -58,6 +58,72 @@ export type Database = {
           },
         ]
       }
+      chat_folder_items: {
+        Row: {
+          added_at: string
+          conversation_id: string
+          folder_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          conversation_id: string
+          folder_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          conversation_id?: string
+          folder_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_folder_items_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_folder_items_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_folders: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          name: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_members: {
         Row: {
           conversation_id: string
@@ -98,28 +164,37 @@ export type Database = {
       }
       conversations: {
         Row: {
+          announcement: string | null
           avatar_url: string | null
           created_at: string
+          description: string | null
           disappear_after: number | null
           id: string
+          is_public: boolean
           name: string | null
           type: string
           updated_at: string
         }
         Insert: {
+          announcement?: string | null
           avatar_url?: string | null
           created_at?: string
+          description?: string | null
           disappear_after?: number | null
           id?: string
+          is_public?: boolean
           name?: string | null
           type?: string
           updated_at?: string
         }
         Update: {
+          announcement?: string | null
           avatar_url?: string | null
           created_at?: string
+          description?: string | null
           disappear_after?: number | null
           id?: string
+          is_public?: boolean
           name?: string | null
           type?: string
           updated_at?: string
@@ -387,6 +462,65 @@ export type Database = {
             columns: ["reply_to"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_type: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          id: string
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
             referencedColumns: ["id"]
           },
         ]
