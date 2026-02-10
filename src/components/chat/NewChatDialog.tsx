@@ -361,6 +361,18 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
                     >
                       <ExternalLink className="w-4 h-4 mr-1.5" /> Telegram
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => {
+                        const subject = encodeURIComponent("Join me on FUN Chat!");
+                        const body = encodeURIComponent(`Hey! I'd love to chat with you on FUN Chat. Sign up here: ${link}`);
+                        window.open(`mailto:${emailSearch}?subject=${subject}&body=${body}`, "_blank");
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-1.5" /> Email
+                    </Button>
                   </div>
                 </div>
               );
