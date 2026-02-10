@@ -55,6 +55,7 @@ interface ChatAreaProps {
   conversationId: string | null;
   isOnline: (userId: string) => boolean;
   onStartCall?: (conversationId: string, callType: "voice" | "video") => void;
+  onSendPush?: (conversationId: string, title: string, body: string) => void;
 }
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"];
@@ -70,7 +71,7 @@ function getFileName(url: string) {
   return decodeURIComponent(parts[parts.length - 1] || "file");
 }
 
-export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProps) {
+export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: ChatAreaProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { sendNotification } = useNotifications();
@@ -570,6 +571,9 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           if (isAngryMessage(content)) triggerShake();
           if (isSnowMessage(content)) triggerSnow();
           if (isFireMessage(content)) triggerFire();
+          // Send push notification to other members
+          const senderName = user.user_metadata?.display_name || user.email?.split("@")[0] || "Someone";
+          onSendPush?.(conversationId, senderName, content.length > 100 ? content.slice(0, 100) + "…" : content);
         }
       }
 
@@ -747,6 +751,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
 
       setReplyTo(null);
       toast.success(t("chat.voiceSent"));
+      const senderName = user.user_metadata?.display_name || user.email?.split("@")[0] || "Someone";
+      onSendPush?.(conversationId, senderName, "🎙️ Voice message");
     } finally {
       setSending(false);
     }
