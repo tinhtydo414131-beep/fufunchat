@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./SettingsDialog";
 import { useTranslation } from "@/hooks/useI18n";
@@ -33,6 +33,7 @@ interface ConversationListProps {
   refreshKey?: number;
   isOnline: (userId: string) => boolean;
   onGlobalSearch?: () => void;
+  onCallHistory?: () => void;
 }
 
 function getLastReadKey(userId: string, convId: string) {
@@ -43,7 +44,7 @@ export function markConversationRead(userId: string, convId: string) {
   localStorage.setItem(getLastReadKey(userId, convId), new Date().toISOString());
 }
 
-export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch }: ConversationListProps) {
+export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch, onCallHistory }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -205,6 +206,11 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <Button variant="ghost" size="icon" onClick={onNewChat} title={t("sidebar.newChat")} className="hidden sm:inline-flex rounded-xl">
               <Plus className="w-5 h-5" />
             </Button>
+            {onCallHistory && (
+              <Button variant="ghost" size="icon" onClick={onCallHistory} title="Call History" className="hidden sm:inline-flex rounded-xl">
+                <Phone className="w-5 h-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("sidebar.settings")} className="hidden sm:inline-flex rounded-xl">
               <Settings className="w-5 h-5" />
             </Button>

@@ -1,10 +1,10 @@
-import { MessageCircle, User, Settings, Plus, Search } from "lucide-react";
+import { MessageCircle, User, Settings, Plus, Search, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useI18n";
 
 interface MobileBottomNavProps {
-  activeTab: "chats" | "profile" | "settings" | "search";
-  onTabChange: (tab: "chats" | "profile" | "settings" | "search") => void;
+  activeTab: "chats" | "calls" | "profile" | "settings" | "search";
+  onTabChange: (tab: "chats" | "calls" | "profile" | "settings" | "search") => void;
   onNewChat: () => void;
   unreadTotal?: number;
 }
@@ -14,7 +14,7 @@ export function MobileBottomNav({ activeTab, onTabChange, onNewChat, unreadTotal
 
   const tabs = [
     { id: "chats" as const, icon: MessageCircle, label: t("sidebar.chats") || "Chats", badge: unreadTotal, emoji: "💬" },
-    { id: "search" as const, icon: Search, label: t("sidebar.globalSearch") || "Search", emoji: "🔍" },
+    { id: "calls" as const, icon: Phone, label: "Calls", emoji: "📞" },
     { id: "new" as const, icon: Plus, label: t("sidebar.newChatBtn") || "New", emoji: "✨" },
     { id: "profile" as const, icon: User, label: t("sidebar.profile") || "Profile", emoji: "👤" },
     { id: "settings" as const, icon: Settings, label: t("sidebar.settings") || "Settings", emoji: "⚙️" },
@@ -33,7 +33,7 @@ export function MobileBottomNav({ activeTab, onTabChange, onNewChat, unreadTotal
               if (isNew) {
                 onNewChat();
               } else {
-                onTabChange(tab.id as "chats" | "profile" | "settings" | "search");
+                onTabChange(tab.id as "chats" | "calls" | "profile" | "settings" | "search");
               }
             }}
             className={cn(
