@@ -8,6 +8,7 @@ interface VoiceMessagePlayerProps {
 }
 
 const BAR_COUNT = 28;
+const SPEEDS = [1, 1.5, 2] as const;
 
 export function VoiceMessagePlayer({ src, isMe }: VoiceMessagePlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -17,6 +18,7 @@ export function VoiceMessagePlayer({ src, isMe }: VoiceMessagePlayerProps) {
   const contextRef = useRef<AudioContext | null>(null);
 
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<typeof SPEEDS[number]>(1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [bars, setBars] = useState<number[]>(() =>
@@ -122,6 +124,13 @@ export function VoiceMessagePlayer({ src, isMe }: VoiceMessagePlayerProps) {
     setProgress(pct);
   };
 
+  const cycleSpeed = () => {
+    const idx = SPEEDS.indexOf(speed);
+    const next = SPEEDS[(idx + 1) % SPEEDS.length];
+    setSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  };
+
   const fmt = (s: number) => {
     if (!s || !isFinite(s)) return "0:00";
     const m = Math.floor(s / 60);
@@ -192,12 +201,17 @@ export function VoiceMessagePlayer({ src, isMe }: VoiceMessagePlayerProps) {
           >
             {playing ? fmt(audioRef.current?.currentTime || 0) : fmt(duration)}
           </span>
-          <Mic
+          <button
+            onClick={cycleSpeed}
             className={cn(
-              "w-3 h-3",
-              isMe ? "text-primary-foreground/50" : "text-primary/40"
+              "text-[10px] font-bold rounded px-1 py-0.5 transition-colors",
+              isMe
+                ? "text-primary-foreground/70 hover:bg-primary-foreground/15"
+                : "text-muted-foreground hover:bg-muted"
             )}
-          />
+          >
+            {speed}x
+          </button>
         </div>
       </div>
     </div>
