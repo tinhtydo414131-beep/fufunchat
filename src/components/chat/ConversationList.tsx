@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone, Menu, Users, Pin, PinOff, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./SettingsDialog";
+import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useI18n";
 import { format, isToday, isYesterday } from "date-fns";
 import funLogo from "@/assets/fun-logo.png";
@@ -55,6 +56,113 @@ function formatConvTime(dateStr: string): string {
   if (isToday(d)) return format(d, "HH:mm");
   if (isYesterday(d)) return "Yesterday";
   return format(d, "dd/MM/yy");
+}
+
+function ConversationItem({ conv, name, avatarUrl, colorClass, isPinned, isSelected, isOnline, onSelect, onTogglePin, t }: {
+  conv: Conversation;
+  name: string;
+  avatarUrl: string | null | undefined;
+  colorClass: string;
+  isPinned: boolean;
+  isSelected: boolean;
+  isOnline: (userId: string) => boolean;
+  onSelect: () => void;
+  onTogglePin: () => void;
+  t: (key: string) => string;
+}) {
+  const [ctxOpen, setCtxOpen] = useState(false);
+  const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
+
+  return (
+    <div className="relative">
+      <button
+        onClick={onSelect}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setCtxPos({ x: e.clientX, y: e.clientY });
+          setCtxOpen(true);
+        }}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2.5 transition-all text-start",
+          "hover:bg-muted/50 active:bg-muted/70",
+          isSelected && "bg-primary/10",
+          "animate-in fade-in-50 duration-200"
+        )}
+      >
+        <div className="relative">
+          <Avatar className="w-[50px] h-[50px] shrink-0">
+            <AvatarImage src={avatarUrl || undefined} />
+            <AvatarFallback className={cn("text-sm font-semibold", colorClass)}>
+              {name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {conv.type === "direct" && conv.other_user_id && isOnline(conv.other_user_id) && (
+            <span className="absolute bottom-0 end-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1 min-w-0">
+              {isPinned && <Pin className="w-3 h-3 text-muted-foreground shrink-0" />}
+              <p className="text-sm font-semibold truncate">{name}</p>
+            </div>
+            <span className={cn(
+              "text-[11px] shrink-0",
+              (conv.unread_count ?? 0) > 0 ? "text-primary font-semibold" : "text-muted-foreground"
+            )}>
+              {conv.last_message_time ? formatConvTime(conv.last_message_time) : ""}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-1 mt-0.5">
+            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+              {conv.last_message_sender_is_me && (
+                conv.last_message_is_read ? (
+                  <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                ) : (
+                  <Check className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )
+              )}
+              <span className="truncate">
+                {conv.last_message || (
+                  conv.type === "direct" && conv.other_user_id
+                    ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
+                    : conv.type === "group" ? `👥 ${t("sidebar.group")}` : t("sidebar.chat")
+                )}
+              </span>
+            </p>
+            {(conv.unread_count ?? 0) > 0 && (
+              <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground border-0 shrink-0 rounded-full">
+                {conv.unread_count! > 99 ? "99+" : conv.unread_count}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {/* Right-click context menu for pin/unpin */}
+      {ctxOpen && (
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => setCtxOpen(false)} />
+          <div
+            className="fixed z-[100] bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in zoom-in-90 fade-in-0 duration-150"
+            style={{
+              left: Math.min(ctxPos.x, window.innerWidth - 180),
+              top: Math.min(ctxPos.y, window.innerHeight - 100),
+            }}
+          >
+            <button
+              onClick={() => { setCtxOpen(false); onTogglePin(); }}
+              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-popover-foreground hover:bg-accent transition-colors"
+            >
+              {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+              {isPinned ? "Unpin" : "Pin to top"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch, onCallHistory }: ConversationListProps) {
@@ -202,11 +310,16 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
   const togglePinConversation = async (convId: string, currentlyPinned: boolean) => {
     if (!user) return;
     const newVal = currentlyPinned ? null : new Date().toISOString();
-    await supabase
+    const { error } = await supabase
       .from("conversation_members")
-      .update({ pinned_at: newVal } as any)
+      .update({ pinned_at: newVal })
       .eq("conversation_id", convId)
       .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to update pin");
+      return;
+    }
+    toast.success(currentlyPinned ? "Conversation unpinned" : "Conversation pinned");
     setConversations((prev) => {
       const updated = prev.map((c) => c.id === convId ? { ...c, pinned_at: newVal } : c);
       updated.sort((a, b) => {
@@ -326,69 +439,19 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
               const colorClass = funColors[idx % funColors.length];
               const isPinned = !!conv.pinned_at;
               return (
-                <button
+                <ConversationItem
                   key={conv.id}
-                  onClick={() => handleSelect(conv.id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    togglePinConversation(conv.id, isPinned);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 transition-all text-start",
-                    "hover:bg-muted/50 active:bg-muted/70",
-                    selectedId === conv.id && "bg-primary/10",
-                    "animate-in fade-in-50 duration-200"
-                  )}
-                >
-                  <div className="relative">
-                    <Avatar className="w-[50px] h-[50px] shrink-0">
-                      <AvatarImage src={avatarUrl || undefined} />
-                      <AvatarFallback className={cn("text-sm font-semibold", colorClass)}>
-                        {getInitials(name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {conv.type === "direct" && conv.other_user_id && isOnline(conv.other_user_id) && (
-                      <span className="absolute bottom-0 end-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <div className="flex items-center gap-1 min-w-0">
-                        {isPinned && <Pin className="w-3 h-3 text-muted-foreground shrink-0" />}
-                        <p className="text-sm font-semibold truncate">{name}</p>
-                      </div>
-                      <span className={cn(
-                        "text-[11px] shrink-0",
-                        (conv.unread_count ?? 0) > 0 ? "text-primary font-semibold" : "text-muted-foreground"
-                      )}>
-                        {conv.last_message_time ? formatConvTime(conv.last_message_time) : ""}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-1 mt-0.5">
-                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                        {conv.last_message_sender_is_me && (
-                          conv.last_message_is_read ? (
-                            <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-                          ) : (
-                            <Check className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          )
-                        )}
-                        <span className="truncate">
-                          {conv.last_message || (
-                            conv.type === "direct" && conv.other_user_id
-                              ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
-                              : conv.type === "group" ? `👥 ${t("sidebar.group")}` : t("sidebar.chat")
-                          )}
-                        </span>
-                      </p>
-                      {(conv.unread_count ?? 0) > 0 && (
-                        <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground border-0 shrink-0 rounded-full">
-                          {conv.unread_count! > 99 ? "99+" : conv.unread_count}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </button>
+                  conv={conv}
+                  name={name}
+                  avatarUrl={avatarUrl}
+                  colorClass={colorClass}
+                  isPinned={isPinned}
+                  isSelected={selectedId === conv.id}
+                  isOnline={isOnline}
+                  onSelect={() => handleSelect(conv.id)}
+                  onTogglePin={() => togglePinConversation(conv.id, isPinned)}
+                  t={t}
+                />
               );
             })}
           </div>
