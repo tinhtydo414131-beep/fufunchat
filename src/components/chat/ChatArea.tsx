@@ -16,6 +16,12 @@ import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { useConfetti, isCelebrationMessage } from "./ConfettiEffect";
+
+const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
+function isAngryMessage(content: string | null): boolean {
+  if (!content) return false;
+  return ANGRY_EMOJIS.some((e) => content.includes(e));
+}
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -69,6 +75,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
   const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
+  const [shaking, setShaking] = useState(false);
+  const triggerShake = () => { setShaking(true); setTimeout(() => setShaking(false), 550); };
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -288,6 +296,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
 
           // Trigger confetti for incoming celebration messages
           if (isCelebrationMessage(newMsg.content)) triggerConfetti();
+          if (isAngryMessage(newMsg.content)) triggerShake();
         }
       )
       .subscribe();
@@ -522,7 +531,10 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           reply_to: replyTo?.id || null,
         });
         if (error) setNewMessage(content);
-        else if (isCelebrationMessage(content)) triggerConfetti();
+        else {
+          if (isCelebrationMessage(content)) triggerConfetti();
+          if (isAngryMessage(content)) triggerShake();
+        }
       }
 
       await supabase
@@ -830,7 +842,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     <>
     {confettiElement}
     <div
-      className="flex-1 flex flex-col bg-background relative min-h-0"
+      className={cn("flex-1 flex flex-col bg-background relative min-h-0", shaking && "screen-shake")}
       onDragEnter={(e) => {
         e.preventDefault();
         e.stopPropagation();
