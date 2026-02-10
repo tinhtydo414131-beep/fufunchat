@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy } from "lucide-react";
+import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -39,18 +38,14 @@ export function MessageContextMenu({
   isMe,
   disabled,
 }: MessageContextMenuProps) {
-  const isMobile = useIsMobile();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 });
+  const [hovered, setHovered] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const movedRef = useRef(false);
-
-  // Debug: log mount
-  useEffect(() => {
-    console.log("[ContextMenu] mounted for message", messageId, { disabled, isMe });
-  }, [messageId, disabled, isMe]);
 
   const LONG_PRESS_MS = 500;
 
@@ -60,6 +55,12 @@ export function MessageContextMenu({
       timerRef.current = null;
     }
   }, []);
+
+  const openMenu = useCallback((x: number, y: number) => {
+    if (disabled) return;
+    setPosition({ x, y });
+    setOpen(true);
+  }, [disabled]);
 
   // Mobile long-press handler
   const handleTouchStart = useCallback(
@@ -71,14 +72,12 @@ export function MessageContextMenu({
 
       timerRef.current = setTimeout(() => {
         if (!movedRef.current) {
-          console.log("[ContextMenu] long-press fired");
           if (navigator.vibrate) navigator.vibrate(20);
-          setPosition({ x: touch.clientX, y: touch.clientY });
-          setOpen(true);
+          openMenu(touch.clientX, touch.clientY);
         }
       }, LONG_PRESS_MS);
     },
-    [disabled]
+    [disabled, openMenu]
   );
 
   const handleTouchMove = useCallback(
@@ -101,40 +100,33 @@ export function MessageContextMenu({
   // Desktop right-click handler
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      console.log("[ContextMenu] onContextMenu event", { disabled, messageId, button: e.button });
       if (disabled) return;
       e.preventDefault();
       e.stopPropagation();
-      setPosition({ x: e.clientX, y: e.clientY });
-      setOpen(true);
-      console.log("[ContextMenu] menu opened via contextmenu");
+      openMenu(e.clientX, e.clientY);
     },
-    [disabled, messageId]
+    [disabled, openMenu]
   );
 
-  // Fallback: right-click via mousedown button===2
-  const handleMouseDown = useCallback(
+  // Hover "⋮" button click — Telegram-style action trigger
+  const handleActionButtonClick = useCallback(
     (e: React.MouseEvent) => {
-      console.log("[ContextMenu] onMouseDown event", { button: e.button, disabled, messageId });
-      if (e.button !== 2 || disabled) return;
       e.preventDefault();
-      setPosition({ x: e.clientX, y: e.clientY });
-      setOpen(true);
-      console.log("[ContextMenu] menu opened via mousedown");
+      e.stopPropagation();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      openMenu(rect.left + rect.width / 2, rect.bottom + 4);
     },
-    [disabled, messageId]
+    [openMenu]
   );
 
   // Close the menu on any click/touch outside
   useEffect(() => {
     if (!open) return;
     const close = (e: Event) => {
-      // Don't close if clicking inside the menu
       const target = e.target as HTMLElement;
       if (target.closest('[data-context-menu]')) return;
       setOpen(false);
     };
-    // Use a longer timeout to avoid catching the originating right-click event
     const id = setTimeout(() => {
       document.addEventListener("mousedown", close);
       document.addEventListener("touchstart", close);
@@ -191,13 +183,33 @@ export function MessageContextMenu({
   return (
     <>
       <div
+        className="relative group/ctx"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
-        onMouseDown={handleMouseDown}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        ref={wrapperRef}
       >
         {children}
+
+        {/* Telegram-style hover action button — always works regardless of iframe restrictions */}
+        {!disabled && hovered && !open && (
+          <button
+            onClick={handleActionButtonClick}
+            className={cn(
+              "absolute top-1 z-10 w-7 h-7 rounded-full flex items-center justify-center",
+              "bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm",
+              "opacity-0 group-hover/ctx:opacity-100 transition-opacity duration-150",
+              "hover:bg-accent hover:scale-110 active:scale-95",
+              isMe ? "left-1" : "right-1"
+            )}
+            title="Message actions"
+          >
+            <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       {open && (
