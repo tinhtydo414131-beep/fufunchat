@@ -31,6 +31,7 @@ const Chat = () => {
     isMuted: callMuted,
     isVideoEnabled,
     isSpeaker,
+    isScreenSharing,
     startCall,
     answerCall,
     declineCall,
@@ -38,6 +39,7 @@ const Chat = () => {
     toggleMute: toggleCallMute,
     toggleVideo,
     toggleSpeaker,
+    toggleScreenShare,
     localStreamRef,
     remoteStreamRef,
   } = useCall();
@@ -138,6 +140,8 @@ const Chat = () => {
             onToggleMute={toggleCallMute}
             onToggleVideo={toggleVideo}
             onToggleSpeaker={toggleSpeaker}
+            isScreenSharing={isScreenSharing}
+            onToggleScreenShare={toggleScreenShare}
             localStreamRef={localStreamRef}
             remoteStreamRef={remoteStreamRef}
           />
@@ -218,6 +222,8 @@ const Chat = () => {
           onToggleMute={toggleCallMute}
           onToggleVideo={toggleVideo}
           onToggleSpeaker={toggleSpeaker}
+          isScreenSharing={isScreenSharing}
+          onToggleScreenShare={toggleScreenShare}
           localStreamRef={localStreamRef}
           remoteStreamRef={remoteStreamRef}
         />
