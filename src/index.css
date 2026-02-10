@@ -2,98 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 45 100% 98%;
-    --foreground: 240 20% 20%;
+    --background: 260 40% 98%;
+    --foreground: 260 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 20% 20%;
+    --card-foreground: 260 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 20% 20%;
+    --popover-foreground: 260 30% 15%;
 
-    --primary: 340 65% 60%;
+    --primary: 270 70% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 40% 92%;
-    --secondary-foreground: 160 40% 25%;
+    --secondary: 200 80% 92%;
+    --secondary-foreground: 200 60% 30%;
 
-    --muted: 45 30% 94%;
-    --muted-foreground: 240 10% 50%;
+    --muted: 260 25% 94%;
+    --muted-foreground: 260 15% 50%;
 
-    --accent: 45 90% 88%;
-    --accent-foreground: 45 80% 25%;
+    --accent: 30 90% 90%;
+    --accent-foreground: 30 70% 30%;
 
     --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 45 20% 90%;
-    --input: 45 20% 90%;
-    --ring: 340 65% 60%;
+    --border: 260 20% 90%;
+    --input: 260 20% 90%;
+    --ring: 270 70% 60%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
     --chat-font-size: 14px;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 20% 20%;
-    --sidebar-primary: 340 65% 60%;
+    --sidebar-background: 260 30% 99%;
+    --sidebar-foreground: 260 30% 15%;
+    --sidebar-primary: 270 70% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 45 90% 95%;
-    --sidebar-accent-foreground: 240 20% 20%;
-    --sidebar-border: 45 20% 92%;
-    --sidebar-ring: 340 65% 60%;
+    --sidebar-accent: 270 50% 95%;
+    --sidebar-accent-foreground: 260 30% 15%;
+    --sidebar-border: 260 20% 92%;
+    --sidebar-ring: 270 70% 60%;
 
-    --fun-mint: 160 50% 85%;
-    --fun-pink: 340 70% 90%;
-    --fun-gold: 45 90% 88%;
-    --fun-lavender: 270 40% 92%;
+    --fun-mint: 170 55% 82%;
+    --fun-pink: 310 70% 88%;
+    --fun-gold: 40 95% 85%;
+    --fun-lavender: 270 50% 90%;
+    --fun-blue: 220 80% 65%;
+    --fun-orange: 25 90% 60%;
+    --fun-purple: 280 70% 60%;
+    --fun-cyan: 185 70% 75%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 80% 60%), hsl(270 70% 60%), hsl(310 70% 60%));
+    --gradient-warm: linear-gradient(135deg, hsl(270 70% 60%), hsl(25 90% 60%));
+    --gradient-cool: linear-gradient(135deg, hsl(185 70% 60%), hsl(220 80% 65%), hsl(270 70% 60%));
   }
 
   .dark {
-    --background: 230 18% 10%;
-    --foreground: 40 20% 92%;
+    --background: 260 25% 8%;
+    --foreground: 260 15% 92%;
 
-    --card: 230 16% 14%;
-    --card-foreground: 40 20% 92%;
+    --card: 260 22% 12%;
+    --card-foreground: 260 15% 92%;
 
-    --popover: 230 16% 14%;
-    --popover-foreground: 40 20% 92%;
+    --popover: 260 22% 12%;
+    --popover-foreground: 260 15% 92%;
 
-    --primary: 340 72% 65%;
+    --primary: 270 65% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 25% 20%;
-    --secondary-foreground: 160 35% 80%;
+    --secondary: 200 40% 18%;
+    --secondary-foreground: 200 50% 80%;
 
-    --muted: 230 14% 20%;
-    --muted-foreground: 230 12% 65%;
+    --muted: 260 18% 18%;
+    --muted-foreground: 260 12% 60%;
 
-    --accent: 45 40% 22%;
-    --accent-foreground: 45 60% 88%;
+    --accent: 30 50% 20%;
+    --accent-foreground: 30 60% 85%;
 
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 14% 22%;
-    --input: 230 14% 24%;
-    --ring: 340 72% 65%;
+    --border: 260 18% 20%;
+    --input: 260 18% 22%;
+    --ring: 270 65% 65%;
 
-    --sidebar-background: 230 18% 12%;
-    --sidebar-foreground: 40 20% 90%;
-    --sidebar-primary: 340 72% 65%;
+    --sidebar-background: 260 25% 10%;
+    --sidebar-foreground: 260 15% 90%;
+    --sidebar-primary: 270 65% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 14% 18%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 230 14% 20%;
-    --sidebar-ring: 340 72% 65%;
+    --sidebar-accent: 260 20% 16%;
+    --sidebar-accent-foreground: 260 15% 90%;
+    --sidebar-border: 260 18% 18%;
+    --sidebar-ring: 270 65% 65%;
 
-    --fun-mint: 160 30% 28%;
-    --fun-pink: 340 35% 28%;
-    --fun-gold: 45 40% 25%;
-    --fun-lavender: 270 22% 26%;
+    --fun-mint: 170 30% 25%;
+    --fun-pink: 310 35% 25%;
+    --fun-gold: 40 45% 22%;
+    --fun-lavender: 270 25% 22%;
+    --fun-blue: 220 50% 35%;
+    --fun-orange: 25 55% 30%;
+    --fun-purple: 280 40% 30%;
+    --fun-cyan: 185 35% 25%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 60% 45%), hsl(270 50% 50%), hsl(310 50% 50%));
+    --gradient-warm: linear-gradient(135deg, hsl(270 50% 50%), hsl(25 70% 45%));
+    --gradient-cool: linear-gradient(135deg, hsl(185 50% 40%), hsl(220 60% 45%), hsl(270 50% 50%));
   }
 }
 
@@ -138,7 +154,7 @@
   [dir="rtl"] h4,
   [dir="rtl"] h5,
   [dir="rtl"] h6 {
-    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Quicksand', sans-serif;
+    font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Vazirmatn', 'Baloo 2', sans-serif;
   }
 
   [lang="he"] h1,
@@ -147,7 +163,7 @@
   [lang="he"] h4,
   [lang="he"] h5,
   [lang="he"] h6 {
-    font-family: 'Noto Sans Hebrew', 'Quicksand', sans-serif;
+    font-family: 'Noto Sans Hebrew', 'Baloo 2', sans-serif;
   }
 
   [lang="fa"] h1,
@@ -156,7 +172,7 @@
   [lang="fa"] h4,
   [lang="fa"] h5,
   [lang="fa"] h6 {
-    font-family: 'Vazirmatn', 'Quicksand', sans-serif;
+    font-family: 'Vazirmatn', 'Baloo 2', sans-serif;
   }
 
   *,
@@ -168,6 +184,39 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Quicksand', sans-serif;
+    font-family: 'Baloo 2', 'Quicksand', sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+  .gradient-cool {
+    background: var(--gradient-cool);
+  }
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-warm {
+    background: var(--gradient-warm);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .fun-shadow {
+    box-shadow: 0 4px 20px -4px hsl(270 70% 60% / 0.25), 0 2px 8px -2px hsl(220 80% 65% / 0.15);
+  }
+  .fun-shadow-lg {
+    box-shadow: 0 8px 32px -6px hsl(270 70% 60% / 0.3), 0 4px 16px -4px hsl(25 90% 60% / 0.15);
+  }
+  .fun-glow {
+    box-shadow: 0 0 20px hsl(270 70% 60% / 0.2), 0 0 40px hsl(220 80% 65% / 0.1);
   }
 }

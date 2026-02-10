@@ -35,7 +35,6 @@ const Chat = () => {
     navigate("/auth");
   };
 
-  // Mobile: handle tab changes
   const handleMobileTabChange = (tab: "chats" | "profile" | "settings" | "search") => {
     if (tab === "profile") {
       navigate("/profile");
@@ -53,13 +52,12 @@ const Chat = () => {
     setSelectedConversation(null);
   };
 
-  // Mobile: in a conversation
   const mobileInChat = isMobile && !!selectedConversation;
 
   // Desktop layout
   if (!isMobile) {
     return (
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="flex h-screen w-full overflow-hidden bg-background">
         <div className="w-80 shrink-0">
           <ConversationList
             selectedId={selectedConversation}
@@ -68,6 +66,7 @@ const Chat = () => {
             onSignOut={handleSignOut}
             refreshKey={refreshKey}
             isOnline={isOnline}
+            onGlobalSearch={() => setGlobalSearchOpen(true)}
           />
         </div>
         <div className="flex-1 flex flex-col min-w-0">
@@ -89,12 +88,16 @@ const Chat = () => {
 
   // Mobile layout
   return (
-    <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-background">
       {mobileInChat ? (
-        // Full-screen chat view on mobile
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="px-2 py-1.5 border-b border-border bg-card flex items-center gap-2 safe-area-top">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedConversation(null)} className="shrink-0 -ml-1">
+          <div className="px-2 py-1.5 border-b border-border/50 bg-card/95 backdrop-blur-md flex items-center gap-2 safe-area-top">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedConversation(null)}
+              className="shrink-0 -ml-1 rounded-xl"
+            >
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
           </div>
@@ -103,7 +106,6 @@ const Chat = () => {
           </div>
         </div>
       ) : (
-        // Conversation list + bottom nav
         <>
           <div className="flex-1 min-h-0 overflow-hidden">
             <ConversationList
