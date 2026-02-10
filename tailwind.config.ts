@@ -67,6 +67,12 @@ export default {
           purple: "hsl(var(--fun-purple))",
           cyan: "hsl(var(--fun-cyan))",
         },
+        tg: {
+          "msg-out": "hsl(var(--tg-msg-out))",
+          "msg-in": "hsl(var(--tg-msg-in))",
+          "chat-bg": "hsl(var(--tg-chat-bg))",
+          "header": "hsl(var(--tg-header))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -176,12 +176,12 @@ const Chat = () => {
     <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-background">
       {mobileInChat ? (
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="px-2 py-1.5 border-b border-border/50 bg-card/95 backdrop-blur-md flex items-center gap-2 safe-area-top">
+          <div className="px-2 py-2 bg-primary flex items-center gap-2 safe-area-top">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelectedConversation(null)}
-              className="shrink-0 -ml-1 rounded-xl"
+              className="shrink-0 -ml-1 rounded-full text-primary-foreground hover:bg-primary-foreground/10"
             >
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>

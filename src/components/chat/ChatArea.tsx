@@ -924,20 +924,20 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           </div>
         </div>
       )}
-      {/* Chat Header */}
+      {/* Chat Header - Telegram style */}
       {convInfo && convInfo.type === "direct" && convInfo.otherUserId && (
-        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+        <div className="px-4 py-2.5 bg-primary text-primary-foreground flex items-center gap-3">
           <div className="relative">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+            <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center text-primary-foreground text-sm font-semibold">
               {convInfo.otherUserName?.slice(0, 2).toUpperCase() || "??"}
             </div>
             {isOnline(convInfo.otherUserId) && (
-              <span className="absolute bottom-0 end-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
+              <span className="absolute bottom-0 end-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-primary" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{convInfo.otherUserName || t("chat.user")}</p>
-            <p className={cn("text-xs", isOnline(convInfo.otherUserId) ? "text-green-500" : "text-muted-foreground")}>
+            <p className="text-xs text-primary-foreground/70">
               {otherUserStatus
                 ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${t({ online: "chat.active", away: "chat.away", busy: "chat.busy", offline: "chat.offline" }[otherUserStatus.status as string] || "chat.offline")}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
@@ -945,21 +945,21 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           </div>
           {onStartCall && (
             <>
-              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call">
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
                 <Phone className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call">
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
                 <Video className="w-4 h-4" />
               </Button>
             </>
           )}
-           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
-            {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
+           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")} className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+            {isMuted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
           </Button>
           <Popover open={disappearMenuOpen} onOpenChange={setDisappearMenuOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" title="Disappearing messages">
-                {convInfo.disappearAfter ? <Timer className="w-4 h-4 text-primary" /> : <TimerOff className="w-4 h-4 text-muted-foreground" />}
+              <Button variant="ghost" size="icon" title="Disappearing messages" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+                {convInfo.disappearAfter ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4 opacity-70" />}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-44 p-1.5" align="end" side="bottom">
@@ -978,44 +978,43 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
               ))}
             </PopoverContent>
           </Popover>
-          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")} className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
             <Search className="w-4 h-4" />
           </Button>
         </div>
       )}
       {convInfo && convInfo.type === "group" && (
-        <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+        <div className="px-4 py-2.5 bg-primary text-primary-foreground flex items-center gap-3">
           <button
             type="button"
             onClick={() => setGroupManagementOpen(true)}
             className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity text-start"
           >
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold truncate">{convInfo.name || t("chat.group")}</p>
-              <p className="text-xs text-muted-foreground">{convInfo.memberCount} {t("chat.members")}</p>
+              <p className="text-xs text-primary-foreground/70">{convInfo.memberCount} {t("chat.members")}</p>
             </div>
-            <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
           {onStartCall && (
             <>
-              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call">
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
                 <Phone className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call">
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
                 <Video className="w-4 h-4" />
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
-            {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
+          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")} className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+            {isMuted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
           </Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" title="Disappearing messages">
-                {convInfo.disappearAfter ? <Timer className="w-4 h-4 text-primary" /> : <TimerOff className="w-4 h-4 text-muted-foreground" />}
+              <Button variant="ghost" size="icon" title="Disappearing messages" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+                {convInfo.disappearAfter ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4 opacity-70" />}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-44 p-1.5" align="end" side="bottom">
@@ -1034,7 +1033,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
               ))}
             </PopoverContent>
           </Popover>
-          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
+          <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")} className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
             <Search className="w-4 h-4" />
           </Button>
         </div>
@@ -1116,7 +1115,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
       )}
 
       {/* Messages */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden tg-chat-bg">
         {/* Wallpaper background layer */}
         {wallpaperId !== "none" && (
           <div
@@ -1284,11 +1283,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
                     )}
                     <div
                       className={cn(
-                        "rounded-2xl leading-relaxed",
-                        isMedia ? "p-1" : "px-4 py-2.5",
+                        "rounded-2xl leading-relaxed shadow-sm",
+                        isMedia ? "p-1" : "px-3.5 py-2",
                         isMe
-                          ? "gradient-primary text-primary-foreground rounded-br-md fun-shadow"
-                          : "bg-muted rounded-bl-md",
+                          ? "bg-tg-msg-out rounded-br-sm"
+                          : "bg-tg-msg-in rounded-bl-sm",
                         msg.type === "text" && msg.content?.includes("❤️") && "heartbeat-pulse"
                       )}
                       style={{ fontSize: "var(--chat-font-size, 14px)" }}

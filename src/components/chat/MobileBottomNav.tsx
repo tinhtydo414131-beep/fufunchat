@@ -21,7 +21,7 @@ export function MobileBottomNav({ activeTab, onTabChange, onNewChat, unreadTotal
   ];
 
   return (
-    <nav className="flex items-center justify-around border-t border-border/50 bg-card/95 backdrop-blur-md px-1 py-1 safe-area-bottom">
+    <nav className="flex items-center justify-around border-t border-border bg-card px-1 py-1.5 safe-area-bottom">
       {tabs.map((tab) => {
         const isNew = tab.id === "new";
         const isActive = !isNew && activeTab === tab.id;
@@ -37,8 +37,8 @@ export function MobileBottomNav({ activeTab, onTabChange, onNewChat, unreadTotal
               }
             }}
             className={cn(
-              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all relative",
-              isNew && "gradient-primary text-primary-foreground rounded-full p-3 -mt-5 fun-shadow-lg active:scale-90",
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all relative",
+              isNew && "bg-primary text-primary-foreground rounded-full p-3 -mt-4 shadow-md active:scale-90",
               isActive && "text-primary",
               !isActive && !isNew && "text-muted-foreground active:scale-95"
             )}
@@ -46,13 +46,13 @@ export function MobileBottomNav({ activeTab, onTabChange, onNewChat, unreadTotal
             <div className="relative">
               <tab.icon className={cn("w-5 h-5", isNew && "w-5 h-5")} />
               {tab.badge && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -end-2 min-w-[16px] h-4 px-1 text-[10px] font-bold gradient-primary text-primary-foreground rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -end-2 min-w-[16px] h-4 px-1 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
                   {tab.badge > 99 ? "99+" : tab.badge}
                 </span>
               )}
             </div>
             {!isNew && (
-              <span className="text-[10px] font-semibold leading-none">{tab.label}</span>
+              <span className="text-[10px] font-medium leading-none">{tab.label}</span>
             )}
           </button>
         );
