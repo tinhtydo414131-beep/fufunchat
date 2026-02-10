@@ -97,6 +97,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          disappear_after: number | null
           id: string
           name: string | null
           type: string
@@ -105,6 +106,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          disappear_after?: number | null
           id?: string
           name?: string | null
           type?: string
@@ -113,6 +115,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          disappear_after?: number | null
           id?: string
           name?: string | null
           type?: string
@@ -154,6 +157,7 @@ export type Database = {
           content: string | null
           conversation_id: string
           created_at: string
+          expires_at: string | null
           id: string
           is_deleted: boolean
           reply_to: string | null
@@ -165,6 +169,7 @@ export type Database = {
           content?: string | null
           conversation_id: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_deleted?: boolean
           reply_to?: string | null
@@ -176,6 +181,7 @@ export type Database = {
           content?: string | null
           conversation_id?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_deleted?: boolean
           reply_to?: string | null
