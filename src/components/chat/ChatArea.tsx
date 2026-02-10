@@ -1176,7 +1176,8 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                         isMedia ? "p-1" : "px-4 py-2.5",
                         isMe
                           ? "gradient-primary text-primary-foreground rounded-br-md fun-shadow"
-                          : "bg-muted rounded-bl-md"
+                          : "bg-muted rounded-bl-md",
+                        msg.type === "text" && msg.content?.includes("❤️") && "heartbeat-pulse"
                       )}
                       style={{ fontSize: "var(--chat-font-size, 14px)" }}
                     >

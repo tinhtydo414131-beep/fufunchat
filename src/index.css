@@ -306,3 +306,15 @@
 .screen-shake {
   animation: screen-shake 0.5s ease-in-out;
 }
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.08); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.12); }
+  56% { transform: scale(1); }
+}
+
+.heartbeat-pulse {
+  animation: heartbeat 1.2s ease-in-out 2;
+}
