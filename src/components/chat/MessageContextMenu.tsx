@@ -47,6 +47,11 @@ export function MessageContextMenu({
   const touchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const movedRef = useRef(false);
 
+  // Debug: log mount
+  useEffect(() => {
+    console.log("[ContextMenu] mounted for message", messageId, { disabled, isMe });
+  }, [messageId, disabled, isMe]);
+
   const LONG_PRESS_MS = 500;
 
   const clearTimer = useCallback(() => {
@@ -96,24 +101,28 @@ export function MessageContextMenu({
   // Desktop right-click handler
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
+      console.log("[ContextMenu] onContextMenu event", { disabled, messageId, button: e.button });
       if (disabled) return;
       e.preventDefault();
       e.stopPropagation();
       setPosition({ x: e.clientX, y: e.clientY });
       setOpen(true);
+      console.log("[ContextMenu] menu opened via contextmenu");
     },
-    [disabled]
+    [disabled, messageId]
   );
 
   // Fallback: right-click via mousedown button===2
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      console.log("[ContextMenu] onMouseDown event", { button: e.button, disabled, messageId });
       if (e.button !== 2 || disabled) return;
       e.preventDefault();
       setPosition({ x: e.clientX, y: e.clientY });
       setOpen(true);
+      console.log("[ContextMenu] menu opened via mousedown");
     },
-    [disabled]
+    [disabled, messageId]
   );
 
   // Close the menu on any click/touch outside
