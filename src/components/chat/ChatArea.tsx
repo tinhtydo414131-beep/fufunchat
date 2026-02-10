@@ -84,6 +84,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [searchIndex, setSearchIndex] = useState(0);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
+  const [readReceipts, setReadReceipts] = useState<{ user_id: string; last_read_at: string; display_name: string; avatar_url: string | null }[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set());
@@ -142,11 +143,26 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
       .eq("conversation_id", conversationId)
       .neq("user_id", user.id);
     if (data && data.length > 0) {
-      // Use the latest read timestamp among other users
       const latest = data.reduce((a, b) => a.last_read_at > b.last_read_at ? a : b);
       setOtherReadAt(latest.last_read_at);
+
+      // Load profiles for all readers
+      const userIds = data.map((d) => d.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, avatar_url")
+        .in("user_id", userIds);
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]));
+      setReadReceipts(
+        data.map((d) => ({
+          ...d,
+          display_name: profileMap.get(d.user_id)?.display_name || "User",
+          avatar_url: profileMap.get(d.user_id)?.avatar_url || null,
+        }))
+      );
     } else {
       setOtherReadAt(null);
+      setReadReceipts([]);
     }
   }, [conversationId, user]);
 
@@ -1006,10 +1022,13 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             const isSearchMatch = searchResults.includes(msg.id);
             const isCurrentMatch = searchResults[searchIndex] === msg.id;
 
-            // Show "Seen" on the last of my messages that the other user has read
-            const isSeen = isMe && otherReadAt && msg.created_at <= otherReadAt;
+            // Compute who has seen this message (for own messages only)
+            const seenByUsers = isMe
+              ? readReceipts.filter((r) => r.last_read_at >= msg.created_at)
+              : [];
             const nextMsg = messages[i + 1];
-            const isLastSeen = isSeen && (!nextMsg || nextMsg.sender_id !== user?.id || (otherReadAt && nextMsg.created_at > otherReadAt));
+            // Show seen indicator on the last consecutive own message that someone has read
+            const isLastSeen = seenByUsers.length > 0 && (!nextMsg || nextMsg.sender_id !== user?.id || !readReceipts.some((r) => r.last_read_at >= nextMsg.created_at));
 
             return (
               <SwipeToReply
@@ -1210,7 +1229,45 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                       <span className="text-[10px] text-muted-foreground italic">{t("chat.edited")}</span>
                     )}
                     {isLastSeen && (
-                      <span className="text-[10px] text-primary font-medium">{t("chat.seen")}</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 cursor-pointer">
+                            {convInfo?.type === "group" && seenByUsers.length > 0 ? (
+                              <span className="flex -space-x-1.5">
+                                {seenByUsers.slice(0, 4).map((r) => (
+                                  <Avatar key={r.user_id} className="w-4 h-4 border border-background">
+                                    <AvatarImage src={r.avatar_url || undefined} />
+                                    <AvatarFallback className="text-[6px] bg-primary/10 text-primary">
+                                      {r.display_name.slice(0, 1).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ))}
+                                {seenByUsers.length > 4 && (
+                                  <span className="text-[9px] text-muted-foreground ml-1">+{seenByUsers.length - 4}</span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-primary font-medium">{t("chat.seen")}</span>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto max-w-[180px] p-2" side="top" align="end">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Seen by</p>
+                          <div className="space-y-1.5">
+                            {seenByUsers.map((r) => (
+                              <div key={r.user_id} className="flex items-center gap-2">
+                                <Avatar className="w-5 h-5">
+                                  <AvatarImage src={r.avatar_url || undefined} />
+                                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                    {r.display_name.slice(0, 1).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-foreground">{r.display_name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 </div>
