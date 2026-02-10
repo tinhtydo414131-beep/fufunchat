@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock, Phone, Video } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -88,7 +88,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string } | null>(null);
+  const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null } | null>(null);
+  const [disappearMenuOpen, setDisappearMenuOpen] = useState(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -252,6 +253,31 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
       .eq("conversation_id", conversationId)
       .eq("user_id", user.id);
     toast.success(newVal ? t("chat.mutedSuccess") || "🔕" : t("chat.unmutedSuccess") || "🔔");
+  };
+
+  const DISAPPEAR_OPTIONS = [
+    { label: "Off", value: null },
+    { label: "30s", value: 30 },
+    { label: "5m", value: 300 },
+    { label: "1h", value: 3600 },
+    { label: "24h", value: 86400 },
+    { label: "7d", value: 604800 },
+  ];
+
+  const getExpiresAt = (): string | null => {
+    if (!convInfo?.disappearAfter) return null;
+    return new Date(Date.now() + convInfo.disappearAfter * 1000).toISOString();
+  };
+
+  const setDisappearAfter = async (value: number | null) => {
+    if (!conversationId) return;
+    await supabase
+      .from("conversations")
+      .update({ disappear_after: value } as any)
+      .eq("id", conversationId);
+    setConvInfo((prev) => prev ? { ...prev, disappearAfter: value } : prev);
+    setDisappearMenuOpen(false);
+    toast.success(value ? `⏱️ Messages will disappear after ${DISAPPEAR_OPTIONS.find((o) => o.value === value)?.label}` : "⏱️ Disappearing messages turned off");
   };
 
   useEffect(() => {
@@ -442,7 +468,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
     if (!conversationId || !user) return;
     const { data: conv } = await supabase
       .from("conversations")
-      .select("type, name")
+      .select("type, name, disappear_after")
       .eq("id", conversationId)
       .maybeSingle();
 
@@ -472,7 +498,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
     }
 
     if (conv) {
-      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0, otherUserId, otherUserName });
+      setConvInfo({ type: conv.type, name: conv.name, memberCount: count || 0, otherUserId, otherUserName, disappearAfter: (conv as any).disappear_after });
     }
   };
 
@@ -518,7 +544,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
             content: url,
             type: isImage ? "image" : "file",
             reply_to: replyTo?.id || null,
-          });
+            expires_at: getExpiresAt(),
+          } as any);
         }
         setPendingFiles([]);
         setUploading(false);
@@ -534,7 +561,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           content,
           type: "text",
           reply_to: replyTo?.id || null,
-        });
+          expires_at: getExpiresAt(),
+        } as any);
         if (error) setNewMessage(content);
         else {
           if (isCelebrationMessage(content)) triggerConfetti();
@@ -708,7 +736,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
         content: urlData.publicUrl,
         type: "voice",
         reply_to: replyTo?.id || null,
-      });
+        expires_at: getExpiresAt(),
+      } as any);
 
       await supabase
         .from("conversations")
@@ -924,9 +953,31 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
+           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
+          <Popover open={disappearMenuOpen} onOpenChange={setDisappearMenuOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" title="Disappearing messages">
+                {convInfo.disappearAfter ? <Timer className="w-4 h-4 text-primary" /> : <TimerOff className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-1.5" align="end" side="bottom">
+              <p className="text-xs font-semibold text-muted-foreground px-2 py-1">Disappearing messages</p>
+              {DISAPPEAR_OPTIONS.map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  onClick={() => setDisappearAfter(opt.value)}
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors",
+                    convInfo.disappearAfter === opt.value ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
           <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
             <Search className="w-4 h-4" />
           </Button>
@@ -961,6 +1012,28 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" title="Disappearing messages">
+                {convInfo.disappearAfter ? <Timer className="w-4 h-4 text-primary" /> : <TimerOff className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-1.5" align="end" side="bottom">
+              <p className="text-xs font-semibold text-muted-foreground px-2 py-1">Disappearing messages</p>
+              {DISAPPEAR_OPTIONS.map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  onClick={() => setDisappearAfter(opt.value)}
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors",
+                    convInfo.disappearAfter === opt.value ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
           <Button variant="ghost" size="icon" onClick={toggleSearch} title={t("chat.searchMessages")}>
             <Search className="w-4 h-4" />
           </Button>
@@ -989,6 +1062,16 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* Disappearing messages banner */}
+      {convInfo?.disappearAfter && (
+        <div className="px-4 py-1.5 border-b border-border bg-primary/5 flex items-center gap-2">
+          <Timer className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-xs text-primary font-medium">
+            Disappearing messages: {DISAPPEAR_OPTIONS.find((o) => o.value === convInfo.disappearAfter)?.label || "On"}
+          </span>
         </div>
       )}
 
@@ -1275,6 +1358,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProp
                     <p className="text-[10px] text-muted-foreground">
                       {format(new Date(msg.created_at), "HH:mm")}
                     </p>
+                    {(msg as any).expires_at && (
+                      <span title={`Disappears ${format(new Date((msg as any).expires_at), "MMM d, HH:mm")}`}>
+                        <Timer className="w-2.5 h-2.5 text-primary/60" />
+                      </span>
+                    )}
                     {msg.updated_at && msg.updated_at !== msg.created_at && !msg.is_deleted && (
                       <span className="text-[10px] text-muted-foreground italic">{t("chat.edited")}</span>
                     )}
