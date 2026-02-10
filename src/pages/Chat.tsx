@@ -2,12 +2,15 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useCall } from "@/hooks/useCall";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
 import { GlobalSearchDialog } from "@/components/chat/GlobalSearchDialog";
 import { SettingsDialog } from "@/components/chat/SettingsDialog";
 import { MobileBottomNav } from "@/components/chat/MobileBottomNav";
+import { IncomingCallDialog } from "@/components/chat/IncomingCallDialog";
+import { ActiveCallOverlay } from "@/components/chat/ActiveCallOverlay";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,24 @@ const Chat = () => {
   const isMobile = useIsMobile();
   const { isOnline } = useOnlineUsers();
   const { requestPermission } = useNotifications();
+  const {
+    activeCall,
+    incomingCall,
+    callDuration,
+    formatCallDuration,
+    isMuted: callMuted,
+    isVideoEnabled,
+    isSpeaker,
+    startCall,
+    answerCall,
+    declineCall,
+    endCall,
+    toggleMute: toggleCallMute,
+    toggleVideo,
+    toggleSpeaker,
+    localStreamRef,
+    remoteStreamRef,
+  } = useCall();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -52,6 +73,10 @@ const Chat = () => {
     setSelectedConversation(null);
   };
 
+  const handleStartCall = (conversationId: string, callType: "voice" | "video") => {
+    startCall(conversationId, callType);
+  };
+
   const mobileInChat = isMobile && !!selectedConversation;
 
   // Desktop layout
@@ -70,7 +95,7 @@ const Chat = () => {
           />
         </div>
         <div className="flex-1 flex flex-col min-w-0">
-          <ChatArea conversationId={selectedConversation} isOnline={isOnline} />
+          <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} />
         </div>
         <NewChatDialog
           open={newChatOpen}
@@ -82,6 +107,26 @@ const Chat = () => {
           onOpenChange={setGlobalSearchOpen}
           onSelectConversation={(id) => { setSelectedConversation(id); }}
         />
+        {/* Call UI */}
+        {incomingCall && (
+          <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
+        )}
+        {activeCall && (
+          <ActiveCallOverlay
+            call={activeCall}
+            duration={callDuration}
+            formatDuration={formatCallDuration}
+            isMuted={callMuted}
+            isVideoEnabled={isVideoEnabled}
+            isSpeaker={isSpeaker}
+            onEndCall={endCall}
+            onToggleMute={toggleCallMute}
+            onToggleVideo={toggleVideo}
+            onToggleSpeaker={toggleSpeaker}
+            localStreamRef={localStreamRef}
+            remoteStreamRef={remoteStreamRef}
+          />
+        )}
       </div>
     );
   }
@@ -102,7 +147,7 @@ const Chat = () => {
             </Button>
           </div>
           <div className="flex-1 min-h-0">
-            <ChatArea conversationId={selectedConversation} isOnline={isOnline} />
+            <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} />
           </div>
         </div>
       ) : (
@@ -136,6 +181,26 @@ const Chat = () => {
         onSelectConversation={(id) => { setSelectedConversation(id); }}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {/* Call UI */}
+      {incomingCall && (
+        <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
+      )}
+      {activeCall && (
+        <ActiveCallOverlay
+          call={activeCall}
+          duration={callDuration}
+          formatDuration={formatCallDuration}
+          isMuted={callMuted}
+          isVideoEnabled={isVideoEnabled}
+          isSpeaker={isSpeaker}
+          onEndCall={endCall}
+          onToggleMute={toggleCallMute}
+          onToggleVideo={toggleVideo}
+          onToggleSpeaker={toggleSpeaker}
+          localStreamRef={localStreamRef}
+          remoteStreamRef={remoteStreamRef}
+        />
+      )}
     </div>
   );
 };

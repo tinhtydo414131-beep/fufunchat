@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock, Phone, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -53,6 +53,7 @@ interface Message {
 interface ChatAreaProps {
   conversationId: string | null;
   isOnline: (userId: string) => boolean;
+  onStartCall?: (conversationId: string, callType: "voice" | "video") => void;
 }
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"];
@@ -68,7 +69,7 @@ function getFileName(url: string) {
   return decodeURIComponent(parts[parts.length - 1] || "file");
 }
 
-export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
+export function ChatArea({ conversationId, isOnline, onStartCall }: ChatAreaProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { sendNotification } = useNotifications();
@@ -913,6 +914,16 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
           </div>
+          {onStartCall && (
+            <>
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call">
+                <Phone className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call">
+                <Video className="w-4 h-4" />
+              </Button>
+            </>
+          )}
           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
@@ -937,6 +948,16 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
             </div>
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
+          {onStartCall && (
+            <>
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "voice")} title="Voice call">
+                <Phone className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onStartCall(conversationId!, "video")} title="Video call">
+                <Video className="w-4 h-4" />
+              </Button>
+            </>
+          )}
           <Button variant="ghost" size="icon" onClick={toggleMute} title={isMuted ? t("chat.enableNotif") : t("chat.disableNotif")}>
             {isMuted ? <BellOff className="w-4 h-4 text-muted-foreground" /> : <Bell className="w-4 h-4" />}
           </Button>
