@@ -64,6 +64,7 @@ export type Database = {
           id: string
           joined_at: string
           muted: boolean
+          pinned_at: string | null
           role: string
           user_id: string
         }
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           joined_at?: string
           muted?: boolean
+          pinned_at?: string | null
           role?: string
           user_id: string
         }
@@ -80,6 +82,7 @@ export type Database = {
           id?: string
           joined_at?: string
           muted?: boolean
+          pinned_at?: string | null
           role?: string
           user_id?: string
         }

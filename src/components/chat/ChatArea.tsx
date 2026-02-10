@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -16,6 +16,7 @@ import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
+import { MessageContextMenu } from "./MessageContextMenu";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
@@ -938,7 +939,9 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{convInfo.otherUserName || t("chat.user")}</p>
             <p className="text-xs text-primary-foreground/70">
-              {otherUserStatus
+              {typingNames.length > 0 ? (
+                <span className="animate-pulse">{typingNames.join(", ")} typing...</span>
+              ) : otherUserStatus
                 ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${t({ online: "chat.active", away: "chat.away", busy: "chat.busy", offline: "chat.offline" }[otherUserStatus.status as string] || "chat.offline")}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
@@ -1168,7 +1171,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 disabled={msg.is_deleted}
                 onSwipeReply={() => { setReplyTo(msg); inputRef.current?.focus(); }}
               >
-              <MobileLongPressMenu
+              <MessageContextMenu
                 messageId={msg.id}
                 isMe={isMe}
                 disabled={msg.is_deleted}
@@ -1181,10 +1184,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 onCopy={msg.type === "text" && msg.content ? () => { navigator.clipboard.writeText(msg.content || ""); } : undefined}
               >
               <div id={`msg-${msg.id}`} className={cn(
-                "flex gap-2 group/msg transition-colors duration-300",
+                "flex gap-2 group/msg transition-all duration-200",
                 isMe ? "flex-row-reverse" : "flex-row",
                 isCurrentMatch && "bg-primary/20 rounded-xl",
-                isSearchMatch && !isCurrentMatch && "bg-primary/5 rounded-xl"
+                isSearchMatch && !isCurrentMatch && "bg-primary/5 rounded-xl",
+                "animate-in fade-in-50 slide-in-from-bottom-1 duration-200"
               )}>
                 {!isMe && (
                   <div className="w-8 shrink-0">
@@ -1232,114 +1236,39 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                       </div>
                     );
                   })()}
-                  <div className="flex items-center gap-0.5">
-                    {isMe && !msg.is_deleted && (
-                      <>
-                        <button
-                          onClick={() => deleteMessage(msg)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                          title={t("chat.recallMessage")}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => recallMessage(msg)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={t("chat.recallMessage")}
-                        >
-                          <Undo2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={t("chat.reply")}
-                        >
-                          <Reply className="w-3.5 h-3.5" />
-                        </button>
-                        {msg.type === "text" && (
-                          <button
-                            onClick={() => { setEditingMsg(msg); setEditText(msg.content || ""); }}
-                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                            title={t("chat.edit")}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setForwardMsg(msg)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={t("chat.forward")}
-                        >
-                          <Forward className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={pinnedMessageIds.has(msg.id) ? t("chat.unpin") : t("chat.pin")}
-                        >
-                          {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                        </button>
-                      </>
+                  <div
+                    className={cn(
+                      "rounded-2xl leading-relaxed shadow-sm transition-shadow hover:shadow-md",
+                      isMedia ? "p-1" : "px-3.5 py-2",
+                      isMe
+                        ? "bg-tg-msg-out rounded-br-sm"
+                        : "bg-tg-msg-in rounded-bl-sm",
+                      msg.type === "text" && msg.content?.includes("❤️") && "heartbeat-pulse"
                     )}
-                    <div
-                      className={cn(
-                        "rounded-2xl leading-relaxed shadow-sm",
-                        isMedia ? "p-1" : "px-3.5 py-2",
-                        isMe
-                          ? "bg-tg-msg-out rounded-br-sm"
-                          : "bg-tg-msg-in rounded-bl-sm",
-                        msg.type === "text" && msg.content?.includes("❤️") && "heartbeat-pulse"
-                      )}
-                      style={{ fontSize: "var(--chat-font-size, 14px)" }}
-                    >
-                      {editingMsg?.id === msg.id ? (
-                        <div className="flex items-center gap-1.5 min-w-[160px]">
-                          <input
-                            autoFocus
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEditMessage();
-                              if (e.key === "Escape") { setEditingMsg(null); setEditText(""); }
-                            }}
-                            className="bg-transparent border-b border-primary-foreground/40 outline-none text-sm flex-1 min-w-0 placeholder:text-primary-foreground/50"
-                            placeholder={t("chat.editPlaceholder")}
-                          />
-                          <button onClick={saveEditMessage} className="p-0.5 hover:opacity-80" title={t("chat.save")}>
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-0.5 hover:opacity-80" title={t("chat.cancel")}>
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        renderMessageContent(msg, isMe)
-                      )}
-                    </div>
-                    {!isMe && !msg.is_deleted && (
-                      <>
-                        <button
-                          onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={t("chat.reply")}
-                        >
-                          <Reply className="w-3.5 h-3.5" />
+                    style={{ fontSize: "var(--chat-font-size, 14px)" }}
+                  >
+                    {editingMsg?.id === msg.id ? (
+                      <div className="flex items-center gap-1.5 min-w-[160px]">
+                        <input
+                          autoFocus
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEditMessage();
+                            if (e.key === "Escape") { setEditingMsg(null); setEditText(""); }
+                          }}
+                          className="bg-transparent border-b border-primary-foreground/40 outline-none text-sm flex-1 min-w-0 placeholder:text-primary-foreground/50"
+                          placeholder={t("chat.editPlaceholder")}
+                        />
+                        <button onClick={saveEditMessage} className="p-0.5 hover:opacity-80" title={t("chat.save")}>
+                          <Check className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => setForwardMsg(msg)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={t("chat.forward")}
-                        >
-                          <Forward className="w-3.5 h-3.5" />
+                        <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-0.5 hover:opacity-80" title={t("chat.cancel")}>
+                          <X className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => pinnedMessageIds.has(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground"
-                          title={pinnedMessageIds.has(msg.id) ? t("chat.unpin") : t("chat.pin")}
-                        >
-                          {pinnedMessageIds.has(msg.id) ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                        </button>
-                      </>
+                      </div>
+                    ) : (
+                      renderMessageContent(msg, isMe)
                     )}
                   </div>
                   {!msg.is_deleted && (
@@ -1365,6 +1294,14 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                     {msg.updated_at && msg.updated_at !== msg.created_at && !msg.is_deleted && (
                       <span className="text-[10px] text-muted-foreground italic">{t("chat.edited")}</span>
                     )}
+                    {/* Message status checkmarks for own messages */}
+                    {isMe && !msg.is_deleted && (
+                      seenByUsers.length > 0 ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                      )
+                    )}
                     {isLastSeen && (
                       <Popover>
                         <PopoverTrigger asChild>
@@ -1383,9 +1320,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                                   <span className="text-[9px] text-muted-foreground ml-1">+{seenByUsers.length - 4}</span>
                                 )}
                               </span>
-                            ) : (
-                              <span className="text-[10px] text-primary font-medium">{t("chat.seen")}</span>
-                            )}
+                            ) : null}
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto max-w-[180px] p-2" side="top" align="end">
@@ -1409,7 +1344,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                   </div>
                 </div>
               </div>
-              </MobileLongPressMenu>
+              </MessageContextMenu>
               </SwipeToReply>
             );
           })
