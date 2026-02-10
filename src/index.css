@@ -248,3 +248,23 @@
   font-size: 1.5rem;
   line-height: 1;
 }
+
+@keyframes emoji-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(var(--burst-scale, 0.5)) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--burst-dx, 40px), var(--burst-dy, -60px)) scale(0.1) rotate(var(--burst-rotation, 180deg));
+  }
+}
+
+.emoji-burst-particle {
+  animation: emoji-burst 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  pointer-events: none;
+  position: absolute;
+  z-index: 50;
+  font-size: 0.85rem;
+  line-height: 1;
+}

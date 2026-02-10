@@ -33,6 +33,7 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
   const [detailNames, setDetailNames] = useState<string[]>([]);
   const [loadingNames, setLoadingNames] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: string; emoji: string; x: number }[]>([]);
+  const [burstParticles, setBurstParticles] = useState<{ id: string; emoji: string; x: number; y: number; dx: number; dy: number; scale: number; rotation: number }[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const spawnFloatingEmoji = (emoji: string, originEl?: HTMLElement) => {
@@ -42,6 +43,26 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
     const id = crypto.randomUUID();
     setFloatingEmojis((prev) => [...prev, { id, emoji, x }]);
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 900);
+
+    // Spawn burst particles
+    const cx = originEl ? originEl.offsetLeft + originEl.offsetWidth / 2 : 30;
+    const cy = originEl ? originEl.offsetTop + originEl.offsetHeight / 2 : 0;
+    const count = 6 + Math.floor(Math.random() * 4);
+    const newParticles: typeof burstParticles = Array.from({ length: count }, () => ({
+      id: crypto.randomUUID() as string,
+      emoji,
+      x: cx,
+      y: cy,
+      dx: (Math.random() - 0.5) * 120,
+      dy: -Math.random() * 80 - 20,
+      scale: 0.4 + Math.random() * 0.5,
+      rotation: (Math.random() - 0.5) * 360,
+    }));
+    setBurstParticles((prev) => [...prev, ...newParticles]);
+    setTimeout(() => {
+      const ids = new Set(newParticles.map((p) => p.id));
+      setBurstParticles((prev) => prev.filter((p) => !ids.has(p.id)));
+    }, 750);
   };
 
   useEffect(() => {
@@ -123,6 +144,24 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
           style={{ left: fe.x, bottom: '100%' }}
         >
           {fe.emoji}
+        </span>
+      ))}
+
+      {/* Burst particles */}
+      {burstParticles.map((p) => (
+        <span
+          key={p.id}
+          className="emoji-burst-particle"
+          style={{
+            left: p.x,
+            top: p.y,
+            '--burst-dx': `${p.dx}px`,
+            '--burst-dy': `${p.dy}px`,
+            '--burst-scale': p.scale,
+            '--burst-rotation': `${p.rotation}deg`,
+          } as React.CSSProperties}
+        >
+          {p.emoji}
         </span>
       ))}
 
