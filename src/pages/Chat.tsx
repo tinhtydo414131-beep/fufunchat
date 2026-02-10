@@ -11,10 +11,11 @@ import { SettingsDialog } from "@/components/chat/SettingsDialog";
 import { MobileBottomNav } from "@/components/chat/MobileBottomNav";
 import { IncomingCallDialog } from "@/components/chat/IncomingCallDialog";
 import { ActiveCallOverlay } from "@/components/chat/ActiveCallOverlay";
+import { CallHistory } from "@/components/chat/CallHistory";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone } from "lucide-react";
 
 const Chat = () => {
   const { signOut } = useAuth();
@@ -44,8 +45,9 @@ const Chat = () => {
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState<"chats" | "profile" | "settings" | "search">("chats");
+  const [mobileTab, setMobileTab] = useState<"chats" | "calls" | "profile" | "settings" | "search">("chats");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
 
   useEffect(() => {
     requestPermission();
@@ -56,7 +58,7 @@ const Chat = () => {
     navigate("/auth");
   };
 
-  const handleMobileTabChange = (tab: "chats" | "profile" | "settings" | "search") => {
+  const handleMobileTabChange = (tab: "chats" | "calls" | "profile" | "settings" | "search") => {
     if (tab === "profile") {
       navigate("/profile");
       return;
@@ -67,6 +69,11 @@ const Chat = () => {
     }
     if (tab === "search") {
       setGlobalSearchOpen(true);
+      return;
+    }
+    if (tab === "calls") {
+      setMobileTab(tab);
+      setSelectedConversation(null);
       return;
     }
     setMobileTab(tab);
@@ -83,16 +90,25 @@ const Chat = () => {
   if (!isMobile) {
     return (
       <div className="flex h-screen w-full overflow-hidden bg-background">
-        <div className="w-80 shrink-0">
-          <ConversationList
-            selectedId={selectedConversation}
-            onSelect={setSelectedConversation}
-            onNewChat={() => setNewChatOpen(true)}
-            onSignOut={handleSignOut}
-            refreshKey={refreshKey}
-            isOnline={isOnline}
-            onGlobalSearch={() => setGlobalSearchOpen(true)}
-          />
+        <div className="w-80 shrink-0 flex flex-col">
+          {showCallHistory ? (
+            <CallHistory
+              onSelectConversation={(id) => { setSelectedConversation(id); setShowCallHistory(false); }}
+              onClose={() => setShowCallHistory(false)}
+              onStartCall={handleStartCall}
+            />
+          ) : (
+            <ConversationList
+              selectedId={selectedConversation}
+              onSelect={setSelectedConversation}
+              onNewChat={() => setNewChatOpen(true)}
+              onSignOut={handleSignOut}
+              refreshKey={refreshKey}
+              isOnline={isOnline}
+              onGlobalSearch={() => setGlobalSearchOpen(true)}
+              onCallHistory={() => setShowCallHistory(true)}
+            />
+          )}
         </div>
         <div className="flex-1 flex flex-col min-w-0">
           <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} />
@@ -107,7 +123,6 @@ const Chat = () => {
           onOpenChange={setGlobalSearchOpen}
           onSelectConversation={(id) => { setSelectedConversation(id); }}
         />
-        {/* Call UI */}
         {incomingCall && (
           <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
         )}
@@ -153,14 +168,21 @@ const Chat = () => {
       ) : (
         <>
           <div className="flex-1 min-h-0 overflow-hidden">
-            <ConversationList
-              selectedId={selectedConversation}
-              onSelect={setSelectedConversation}
-              onNewChat={() => setNewChatOpen(true)}
-              onSignOut={handleSignOut}
-              refreshKey={refreshKey}
-              isOnline={isOnline}
-            />
+            {mobileTab === "calls" ? (
+              <CallHistory
+                onSelectConversation={(id) => { setSelectedConversation(id); setMobileTab("chats"); }}
+                onStartCall={handleStartCall}
+              />
+            ) : (
+              <ConversationList
+                selectedId={selectedConversation}
+                onSelect={setSelectedConversation}
+                onNewChat={() => setNewChatOpen(true)}
+                onSignOut={handleSignOut}
+                refreshKey={refreshKey}
+                isOnline={isOnline}
+              />
+            )}
           </div>
           <MobileBottomNav
             activeTab={mobileTab}
@@ -181,7 +203,6 @@ const Chat = () => {
         onSelectConversation={(id) => { setSelectedConversation(id); }}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      {/* Call UI */}
       {incomingCall && (
         <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />
       )}
