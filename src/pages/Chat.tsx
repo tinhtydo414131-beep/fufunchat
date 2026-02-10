@@ -35,6 +35,7 @@ const Chat = () => {
     isScreenSharing,
     isPipMode,
     setIsPipMode,
+    isRecording,
     startCall,
     answerCall,
     declineCall,
@@ -43,6 +44,7 @@ const Chat = () => {
     toggleVideo,
     toggleSpeaker,
     toggleScreenShare,
+    toggleRecording,
     localStreamRef,
     remoteStreamRef,
   } = useCall();
@@ -145,6 +147,8 @@ const Chat = () => {
             onToggleSpeaker={toggleSpeaker}
             isScreenSharing={isScreenSharing}
             onToggleScreenShare={toggleScreenShare}
+            isRecording={isRecording}
+            onToggleRecording={toggleRecording}
             onMinimize={() => setIsPipMode(true)}
             localStreamRef={localStreamRef}
             remoteStreamRef={remoteStreamRef}
@@ -239,11 +243,13 @@ const Chat = () => {
           onToggleMute={toggleCallMute}
           onToggleVideo={toggleVideo}
           onToggleSpeaker={toggleSpeaker}
-          isScreenSharing={isScreenSharing}
-          onToggleScreenShare={toggleScreenShare}
-          onMinimize={() => setIsPipMode(true)}
-          localStreamRef={localStreamRef}
-          remoteStreamRef={remoteStreamRef}
+            isScreenSharing={isScreenSharing}
+            onToggleScreenShare={toggleScreenShare}
+            isRecording={isRecording}
+            onToggleRecording={toggleRecording}
+            onMinimize={() => setIsPipMode(true)}
+            localStreamRef={localStreamRef}
+            remoteStreamRef={remoteStreamRef}
         />
       )}
       {activeCall && isPipMode && (

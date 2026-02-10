@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Monitor, MonitorOff, Minimize2 } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Monitor, MonitorOff, Minimize2, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CallState } from "@/hooks/useCall";
@@ -12,11 +12,13 @@ interface ActiveCallOverlayProps {
   isVideoEnabled: boolean;
   isSpeaker: boolean;
   isScreenSharing?: boolean;
+  isRecording?: boolean;
   onEndCall: () => void;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleSpeaker: () => void;
   onToggleScreenShare?: () => void;
+  onToggleRecording?: () => void;
   onMinimize?: () => void;
   localStreamRef: React.MutableRefObject<MediaStream | null>;
   remoteStreamRef: React.MutableRefObject<MediaStream | null>;
@@ -30,11 +32,13 @@ export function ActiveCallOverlay({
   isVideoEnabled,
   isSpeaker,
   isScreenSharing = false,
+  isRecording = false,
   onEndCall,
   onToggleMute,
   onToggleVideo,
   onToggleSpeaker,
   onToggleScreenShare,
+  onToggleRecording,
   onMinimize,
   localStreamRef,
   remoteStreamRef,
@@ -112,6 +116,13 @@ export function ActiveCallOverlay({
                 Sharing screen
               </div>
             )}
+            {/* Recording indicator */}
+            {isRecording && (
+              <div className="absolute top-4 left-4 z-20 bg-destructive/90 text-destructive-foreground px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 backdrop-blur-sm mt-0" style={isScreenSharing ? { top: '3rem' } : {}}>
+                <Circle className="w-3 h-3 fill-current animate-pulse" />
+                Recording
+              </div>
+            )}
             {/* Dark overlay for controls visibility */}
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
           </>
@@ -181,6 +192,21 @@ export function ActiveCallOverlay({
             title={isScreenSharing ? "Stop sharing" : "Share screen"}
           >
             {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
+          </Button>
+        )}
+
+        {onToggleRecording && (
+          <Button
+            onClick={onToggleRecording}
+            variant="ghost"
+            className={cn(
+              "w-14 h-14 rounded-full",
+              isRecording ? "bg-destructive/20 text-destructive" : "bg-muted text-foreground"
+            )}
+            size="icon"
+            title={isRecording ? "Stop recording" : "Record call"}
+          >
+            <Circle className={cn("w-6 h-6", isRecording && "fill-destructive text-destructive animate-pulse")} />
           </Button>
         )}
 
