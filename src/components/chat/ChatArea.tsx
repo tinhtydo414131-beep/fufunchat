@@ -15,7 +15,7 @@ import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
-import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage } from "./ConfettiEffect";
+import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
 function isAngryMessage(content: string | null): boolean {
@@ -75,6 +75,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
   const { trigger: triggerSnow, element: snowElement } = useSnow();
+  const { trigger: triggerFire, element: fireElement } = useFire();
   const [otherUserStatus, setOtherUserStatus] = useState<{ status: string; custom_text: string } | null>(null);
   const [shaking, setShaking] = useState(false);
   const triggerShake = () => { setShaking(true); setTimeout(() => setShaking(false), 550); };
@@ -299,6 +300,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           if (isCelebrationMessage(newMsg.content)) triggerConfetti();
           if (isAngryMessage(newMsg.content)) triggerShake();
           if (isSnowMessage(newMsg.content)) triggerSnow();
+          if (isFireMessage(newMsg.content)) triggerFire();
         }
       )
       .subscribe();
@@ -537,6 +539,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
           if (isCelebrationMessage(content)) triggerConfetti();
           if (isAngryMessage(content)) triggerShake();
           if (isSnowMessage(content)) triggerSnow();
+          if (isFireMessage(content)) triggerFire();
         }
       }
 
@@ -845,6 +848,7 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
     <>
     {confettiElement}
     {snowElement}
+    {fireElement}
     <div
       className={cn("flex-1 flex flex-col bg-background relative min-h-0", shaking && "screen-shake")}
       onDragEnter={(e) => {
