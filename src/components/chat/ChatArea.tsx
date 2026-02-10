@@ -1153,9 +1153,9 @@ export function ChatArea({ conversationId, isOnline }: ChatAreaProps) {
                     <div
                       className={cn(
                         "rounded-2xl leading-relaxed",
-                        isMedia ? "p-1" : "px-4 py-2",
+                        isMedia ? "p-1" : "px-4 py-2.5",
                         isMe
-                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          ? "gradient-primary text-primary-foreground rounded-br-md fun-shadow"
                           : "bg-muted rounded-bl-md"
                       )}
                       style={{ fontSize: "var(--chat-font-size, 14px)" }}
