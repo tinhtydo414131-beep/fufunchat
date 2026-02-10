@@ -23,6 +23,7 @@ export function useCall() {
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isPipMode, setIsPipMode] = useState(false);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -66,6 +67,7 @@ export function useCall() {
     setIsMuted(false);
     setIsVideoEnabled(true);
     setIsScreenSharing(false);
+    setIsPipMode(false);
     setActiveCall(null);
     setIncomingCall(null);
   }, []);
@@ -501,6 +503,8 @@ export function useCall() {
     isVideoEnabled,
     isSpeaker,
     isScreenSharing,
+    isPipMode,
+    setIsPipMode,
     startCall,
     answerCall,
     declineCall,

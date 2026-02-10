@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Monitor, MonitorOff } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, Monitor, MonitorOff, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CallState } from "@/hooks/useCall";
@@ -17,6 +17,7 @@ interface ActiveCallOverlayProps {
   onToggleVideo: () => void;
   onToggleSpeaker: () => void;
   onToggleScreenShare?: () => void;
+  onMinimize?: () => void;
   localStreamRef: React.MutableRefObject<MediaStream | null>;
   remoteStreamRef: React.MutableRefObject<MediaStream | null>;
 }
@@ -34,6 +35,7 @@ export function ActiveCallOverlay({
   onToggleVideo,
   onToggleSpeaker,
   onToggleScreenShare,
+  onMinimize,
   localStreamRef,
   remoteStreamRef,
 }: ActiveCallOverlayProps) {
@@ -71,6 +73,16 @@ export function ActiveCallOverlay({
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
+      {/* Minimize button */}
+      {onMinimize && (
+        <button
+          onClick={onMinimize}
+          className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors backdrop-blur-sm"
+          title="Minimize to picture-in-picture"
+        >
+          <Minimize2 className="w-4 h-4" />
+        </button>
+      )}
       {/* Call content */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
         {isVideo ? (
