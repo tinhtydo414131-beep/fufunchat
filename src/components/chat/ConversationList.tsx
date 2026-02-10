@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone, Menu, Users, Pin, PinOff, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./SettingsDialog";
 import { useTranslation } from "@/hooks/useI18n";
+import { format, isToday, isYesterday } from "date-fns";
 import funLogo from "@/assets/fun-logo.png";
 
 interface Conversation {
@@ -22,7 +24,11 @@ interface Conversation {
   other_user?: { display_name: string; avatar_url: string | null; user_id?: string };
   other_user_id?: string;
   last_message?: string;
+  last_message_time?: string;
+  last_message_sender_is_me?: boolean;
+  last_message_is_read?: boolean;
   unread_count?: number;
+  pinned_at?: string | null;
 }
 
 interface ConversationListProps {
@@ -42,6 +48,13 @@ function getLastReadKey(userId: string, convId: string) {
 
 export function markConversationRead(userId: string, convId: string) {
   localStorage.setItem(getLastReadKey(userId, convId), new Date().toISOString());
+}
+
+function formatConvTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return "Yesterday";
+  return format(d, "dd/MM/yy");
 }
 
 export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch, onCallHistory }: ConversationListProps) {
@@ -64,7 +77,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
 
     const { data: memberData } = await supabase
       .from("conversation_members")
-      .select("conversation_id")
+      .select("conversation_id, pinned_at")
       .eq("user_id", user.id);
 
     if (!memberData || memberData.length === 0) {
@@ -74,6 +87,7 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
     }
 
     const convIds = memberData.map((m) => m.conversation_id);
+    const pinnedMap = new Map(memberData.map((m) => [m.conversation_id, m.pinned_at]));
 
     const { data: convData } = await supabase
       .from("conversations")
@@ -103,10 +117,10 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
               .select("display_name, avatar_url")
               .eq("user_id", members[0].user_id)
               .single();
-            return { ...conv, other_user: profile || undefined, other_user_id: members[0].user_id };
+            return { ...conv, other_user: profile || undefined, other_user_id: members[0].user_id, pinned_at: pinnedMap.get(conv.id) || null };
           }
         }
-        return conv;
+        return { ...conv, pinned_at: pinnedMap.get(conv.id) || null };
       })
     );
 
@@ -114,14 +128,20 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
       (enriched as Conversation[]).map(async (conv) => {
         const { data: lastMsgData } = await supabase
           .from("messages")
-          .select("content, type, is_deleted, sender_id")
+          .select("content, type, is_deleted, sender_id, created_at")
           .eq("conversation_id", conv.id)
           .order("created_at", { ascending: false })
           .limit(1);
 
         let last_message = "";
+        let last_message_time = conv.updated_at;
+        let last_message_sender_is_me = false;
+        let last_message_is_read = false;
+
         if (lastMsgData && lastMsgData.length > 0) {
           const lm = lastMsgData[0];
+          last_message_time = lm.created_at;
+          last_message_sender_is_me = lm.sender_id === user.id;
           if (lm.is_deleted) {
             last_message = t("chat.deletedPreview");
           } else if (lm.type === "image") {
@@ -133,8 +153,17 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
           } else {
             last_message = lm.content || "";
           }
-          if (lm.sender_id === user.id && !lm.is_deleted) {
-            last_message = `${t("chat.youPrefix")}: ${last_message}`;
+
+          // Check if other users have read the last message
+          if (last_message_sender_is_me) {
+            const { data: readData } = await supabase
+              .from("message_reads")
+              .select("last_read_at")
+              .eq("conversation_id", conv.id)
+              .neq("user_id", user.id)
+              .gte("last_read_at", lm.created_at)
+              .limit(1);
+            last_message_is_read = !!(readData && readData.length > 0);
           }
         }
 
@@ -148,9 +177,17 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
           query = query.gt("created_at", lastRead);
         }
         const { count } = await query;
-        return { ...conv, unread_count: count || 0, last_message };
+        return { ...conv, unread_count: count || 0, last_message, last_message_time, last_message_sender_is_me, last_message_is_read };
       })
     );
+
+    // Sort: pinned first, then by updated_at
+    enrichedWithExtra.sort((a, b) => {
+      const aPinned = a.pinned_at ? 1 : 0;
+      const bPinned = b.pinned_at ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
 
     setConversations(enrichedWithExtra);
     setLoading(false);
@@ -160,6 +197,26 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
     if (user) markConversationRead(user.id, id);
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, unread_count: 0 } : c));
     onSelect(id);
+  };
+
+  const togglePinConversation = async (convId: string, currentlyPinned: boolean) => {
+    if (!user) return;
+    const newVal = currentlyPinned ? null : new Date().toISOString();
+    await supabase
+      .from("conversation_members")
+      .update({ pinned_at: newVal } as any)
+      .eq("conversation_id", convId)
+      .eq("user_id", user.id);
+    setConversations((prev) => {
+      const updated = prev.map((c) => c.id === convId ? { ...c, pinned_at: newVal } : c);
+      updated.sort((a, b) => {
+        const aPinned = a.pinned_at ? 1 : 0;
+        const bPinned = b.pinned_at ? 1 : 0;
+        if (aPinned !== bPinned) return bPinned - aPinned;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+      return updated;
+    });
   };
 
   const filtered = conversations.filter((c) => {
@@ -176,7 +233,6 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Assign a fun color to each conversation for avatar fallback
   const funColors = [
     "bg-fun-pink text-foreground",
     "bg-fun-lavender text-foreground",
@@ -187,36 +243,47 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
 
   return (
     <div className="flex flex-col h-full bg-card border-e border-border">
-      {/* Telegram-style Header */}
-      <div className="px-4 py-3 bg-primary text-primary-foreground flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <MessageCircle className="w-5 h-5" />
-          <h2 className="text-base font-semibold tracking-tight">FUN Chat</h2>
-        </div>
-        <div className="flex gap-0.5">
-          {onGlobalSearch && (
-            <Button variant="ghost" size="icon" onClick={onGlobalSearch} title={t("sidebar.globalSearch")} className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-              <SearchCheck className="w-5 h-5" />
+      {/* Telegram-style Header with Hamburger */}
+      <div className="px-3 py-2.5 bg-primary text-primary-foreground flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full shrink-0">
+              <Menu className="w-5 h-5" />
             </Button>
-          )}
-          <Button variant="ghost" size="icon" onClick={onNewChat} title={t("sidebar.newChat")} className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-            <Plus className="w-5 h-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 bg-popover border-border shadow-xl z-50">
+            <DropdownMenuItem onClick={onNewChat} className="gap-3 py-2.5 cursor-pointer">
+              <Plus className="w-4 h-4" /> New Chat
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onNewChat} className="gap-3 py-2.5 cursor-pointer">
+              <Users className="w-4 h-4" /> New Group
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 py-2.5 cursor-pointer">
+              <User className="w-4 h-4" /> Profile
+            </DropdownMenuItem>
+            {onCallHistory && (
+              <DropdownMenuItem onClick={onCallHistory} className="gap-3 py-2.5 cursor-pointer">
+                <Phone className="w-4 h-4" /> Call History
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)} className="gap-3 py-2.5 cursor-pointer">
+              <Settings className="w-4 h-4" /> Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onSignOut} className="gap-3 py-2.5 cursor-pointer text-destructive focus:text-destructive">
+              <LogOut className="w-4 h-4" /> Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <h2 className="text-base font-semibold tracking-tight flex-1">FUN Chat</h2>
+
+        {onGlobalSearch && (
+          <Button variant="ghost" size="icon" onClick={onGlobalSearch} title={t("sidebar.globalSearch")} className="text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
+            <Search className="w-5 h-5" />
           </Button>
-          {onCallHistory && (
-            <Button variant="ghost" size="icon" onClick={onCallHistory} title="Call History" className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-              <Phone className="w-5 h-5" />
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("sidebar.settings")} className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-            <Settings className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} title={t("sidebar.profile")} className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-            <User className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onSignOut} title={t("sidebar.signOut")} className="hidden sm:inline-flex text-primary-foreground hover:bg-primary-foreground/10 rounded-full">
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Search */}
@@ -246,33 +313,35 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
               {search ? t("sidebar.noResults") : t("sidebar.startFirst")}
             </p>
             {!search && (
-              <Button
-                size="sm"
-                onClick={onNewChat}
-                className="rounded-lg"
-              >
+              <Button size="sm" onClick={onNewChat} className="rounded-lg">
                 <Plus className="w-4 h-4 me-1" /> {t("sidebar.newChatBtn")}
               </Button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-border/50">
+          <div>
             {filtered.map((conv, idx) => {
               const name = getDisplayName(conv);
               const avatarUrl = conv.type === "direct" ? conv.other_user?.avatar_url : conv.avatar_url;
               const colorClass = funColors[idx % funColors.length];
+              const isPinned = !!conv.pinned_at;
               return (
                 <button
                   key={conv.id}
                   onClick={() => handleSelect(conv.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    togglePinConversation(conv.id, isPinned);
+                  }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-start",
+                    "w-full flex items-center gap-3 px-3 py-2.5 transition-all text-start",
                     "hover:bg-muted/50 active:bg-muted/70",
-                    selectedId === conv.id && "bg-primary/10"
+                    selectedId === conv.id && "bg-primary/10",
+                    "animate-in fade-in-50 duration-200"
                   )}
                 >
                   <div className="relative">
-                    <Avatar className="w-12 h-12 shrink-0">
+                    <Avatar className="w-[50px] h-[50px] shrink-0">
                       <AvatarImage src={avatarUrl || undefined} />
                       <AvatarFallback className={cn("text-sm font-semibold", colorClass)}>
                         {getInitials(name)}
@@ -283,21 +352,41 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold truncate">{name}</p>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
+                        {isPinned && <Pin className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        <p className="text-sm font-semibold truncate">{name}</p>
+                      </div>
+                      <span className={cn(
+                        "text-[11px] shrink-0",
+                        (conv.unread_count ?? 0) > 0 ? "text-primary font-semibold" : "text-muted-foreground"
+                      )}>
+                        {conv.last_message_time ? formatConvTime(conv.last_message_time) : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                        {conv.last_message_sender_is_me && (
+                          conv.last_message_is_read ? (
+                            <CheckCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          )
+                        )}
+                        <span className="truncate">
+                          {conv.last_message || (
+                            conv.type === "direct" && conv.other_user_id
+                              ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
+                              : conv.type === "group" ? `👥 ${t("sidebar.group")}` : t("sidebar.chat")
+                          )}
+                        </span>
+                      </p>
                       {(conv.unread_count ?? 0) > 0 && (
-                        <Badge className="ms-2 h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground border-0 shrink-0 rounded-full">
+                        <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground border-0 shrink-0 rounded-full">
                           {conv.unread_count! > 99 ? "99+" : conv.unread_count}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {conv.last_message || (
-                        conv.type === "direct" && conv.other_user_id
-                          ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
-                          : conv.type === "group" ? `👥 ${t("sidebar.group")}` : t("sidebar.chat")
-                      )}
-                    </p>
                   </div>
                 </button>
               );
