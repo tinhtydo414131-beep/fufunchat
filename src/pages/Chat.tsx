@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCall } from "@/hooks/useCall";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
@@ -48,6 +49,7 @@ const Chat = () => {
     localStreamRef,
     remoteStreamRef,
   } = useCall();
+  const { sendPush } = usePushNotifications();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -118,7 +120,7 @@ const Chat = () => {
           )}
         </div>
         <div className="flex-1 flex flex-col min-w-0">
-          <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} />
+          <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} onSendPush={sendPush} />
         </div>
         <NewChatDialog
           open={newChatOpen}
@@ -187,7 +189,7 @@ const Chat = () => {
             </Button>
           </div>
           <div className="flex-1 min-h-0">
-            <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} />
+            <ChatArea conversationId={selectedConversation} isOnline={isOnline} onStartCall={handleStartCall} onSendPush={sendPush} />
           </div>
         </div>
       ) : (
