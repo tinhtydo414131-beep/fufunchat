@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageCircle, Users, X, Check, Mail } from "lucide-react";
+import { Search, MessageCircle, Users, X, Check, Mail, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useI18n";
@@ -328,9 +328,20 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
             )}
 
             {emailNotFound && (
-              <div className="text-center py-6 space-y-2">
+              <div className="text-center py-6 space-y-3">
                 <p className="text-sm text-muted-foreground">No user found with that email.</p>
                 <p className="text-xs text-muted-foreground">They might not have signed up yet — invite them!</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const link = `${window.location.origin}/auth`;
+                    navigator.clipboard.writeText(link);
+                    toast.success("Signup link copied! Share it with your friend.");
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-1.5" /> Copy Invite Link
+                </Button>
               </div>
             )}
           </TabsContent>
