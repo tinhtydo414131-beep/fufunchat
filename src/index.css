@@ -411,3 +411,59 @@
   animation: fire-glow 3.5s ease-in-out forwards;
   pointer-events: none;
 }
+
+/* Telegram-style smooth message animations */
+@keyframes msg-slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes msg-slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.msg-animate-in-right {
+  animation: msg-slide-in-right 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.msg-animate-in-left {
+  animation: msg-slide-in-left 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Smooth conversation transition */
+@keyframes chat-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-area-enter {
+  animation: chat-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* GIF picker no-scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

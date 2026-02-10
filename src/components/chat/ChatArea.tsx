@@ -17,6 +17,8 @@ import { SwipeToReply } from "./SwipeToReply";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
+import { MediaLightbox } from "./MediaLightbox";
+import { GifPicker } from "./GifPicker";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
@@ -91,6 +93,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null } | null>(null);
   const [disappearMenuOpen, setDisappearMenuOpen] = useState(false);
   const [groupManagementOpen, setGroupManagementOpen] = useState(false);
@@ -1185,10 +1188,9 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
               >
               <div id={`msg-${msg.id}`} className={cn(
                 "flex gap-2 group/msg transition-all duration-200",
-                isMe ? "flex-row-reverse" : "flex-row",
+                isMe ? "flex-row-reverse msg-animate-in-right" : "flex-row msg-animate-in-left",
                 isCurrentMatch && "bg-primary/20 rounded-xl",
                 isSearchMatch && !isCurrentMatch && "bg-primary/5 rounded-xl",
-                "animate-in fade-in-50 slide-in-from-bottom-1 duration-200"
               )}>
                 {!isMe && (
                   <div className="w-8 shrink-0">
@@ -1454,6 +1456,37 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             >
               <Paperclip className="w-5 h-5" />
             </Button>
+            {/* GIF button */}
+            <div className="relative">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-primary"
+                onClick={() => setGifPickerOpen(!gifPickerOpen)}
+                title="GIF"
+              >
+                <span className="text-xs font-bold">GIF</span>
+              </Button>
+              {gifPickerOpen && (
+                <div className="absolute bottom-full left-0 mb-2 z-50">
+                  <GifPicker
+                    onSelect={async (gifUrl) => {
+                      setGifPickerOpen(false);
+                      if (!conversationId || !user) return;
+                      const { error } = await supabase.from("messages").insert({
+                        conversation_id: conversationId,
+                        sender_id: user.id,
+                        content: gifUrl,
+                        type: "image",
+                      });
+                      if (error) toast.error("Failed to send GIF");
+                    }}
+                    onClose={() => setGifPickerOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
             <Input
               ref={inputRef}
               placeholder={t("chat.inputPlaceholder")}
@@ -1559,26 +1592,18 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         />
       )}
 
-      {/* Lightbox */}
-      {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setLightboxUrl(null)}
-        >
-          <button
-            onClick={() => setLightboxUrl(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/20 hover:bg-background/40 flex items-center justify-center transition-colors"
-          >
-            <X className="w-6 h-6 text-primary-foreground" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt={t("chat.zoomedImage")}
-            className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl animate-in zoom-in-90 duration-200"
-            onClick={(e) => e.stopPropagation()}
+      {/* Lightbox with navigation */}
+      {lightboxUrl && (() => {
+        const allImages = messages.filter((m) => m.type === "image" && m.content).map((m) => m.content!);
+        const currentIdx = allImages.indexOf(lightboxUrl);
+        return (
+          <MediaLightbox
+            images={allImages}
+            currentIndex={currentIdx >= 0 ? currentIdx : 0}
+            onClose={() => setLightboxUrl(null)}
           />
-        </div>
-      )}
+        );
+      })()}
 
       {/* Forward dialog */}
       <ForwardMessageDialog
