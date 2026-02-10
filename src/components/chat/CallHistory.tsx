@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Video, X, ArrowLeft } from "lucide-react";
+import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Video, X, ArrowLeft, Play, Square, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -19,6 +19,7 @@ interface CallRecord {
   caller_name?: string;
   other_name?: string;
   is_outgoing: boolean;
+  recording_url?: string | null;
 }
 
 interface CallHistoryProps {
@@ -31,6 +32,8 @@ export function CallHistory({ onSelectConversation, onClose, onStartCall }: Call
   const { user } = useAuth();
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +101,21 @@ export function CallHistory({ onSelectConversation, onClose, onStartCall }: Call
 
     setCalls(enriched);
     setLoading(false);
+  };
+
+  const togglePlayback = (call: CallRecord) => {
+    if (!call.recording_url) return;
+    if (playingId === call.id) {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+      setPlayingId(null);
+    } else {
+      if (audioRef.current) audioRef.current.pause();
+      const audio = new Audio(call.recording_url);
+      audio.onended = () => setPlayingId(null);
+      audio.play();
+      audioRef.current = audio;
+      setPlayingId(call.id);
+    }
   };
 
   const formatDuration = (startedAt: string | null, endedAt: string | null) => {
@@ -189,8 +207,30 @@ export function CallHistory({ onSelectConversation, onClose, onStartCall }: Call
                   </div>
                 </div>
 
-                {/* Call type + redial */}
+                {/* Call type + actions */}
                 <div className="flex items-center gap-1 shrink-0">
+                  {call.recording_url && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn("w-8 h-8 rounded-full", playingId === call.id && "text-primary")}
+                        onClick={(e) => { e.stopPropagation(); togglePlayback(call); }}
+                        title={playingId === call.id ? "Stop playback" : "Play recording"}
+                      >
+                        {playingId === call.id ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      </Button>
+                      <a
+                        href={call.recording_url}
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted transition-colors"
+                        title="Download recording"
+                      >
+                        <Download className="w-3.5 h-3.5 text-muted-foreground" />
+                      </a>
+                    </>
+                  )}
                   {call.call_type === "video" ? (
                     <Video className="w-4 h-4 text-muted-foreground" />
                   ) : (

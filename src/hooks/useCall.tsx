@@ -24,6 +24,7 @@ export function useCall() {
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPipMode, setIsPipMode] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -33,6 +34,8 @@ export function useCall() {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const originalVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const signalingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -51,6 +54,11 @@ export function useCall() {
     }
     originalVideoTrackRef.current = null;
     remoteStreamRef.current = null;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
@@ -68,6 +76,7 @@ export function useCall() {
     setIsVideoEnabled(true);
     setIsScreenSharing(false);
     setIsPipMode(false);
+    setIsRecording(false);
     setActiveCall(null);
     setIncomingCall(null);
   }, []);
@@ -287,9 +296,105 @@ export function useCall() {
     cleanupCall();
   }, [incomingCall, user?.id, cleanupCall]);
 
+  const saveRecording = useCallback(async (callId: string) => {
+    if (recordedChunksRef.current.length === 0) return;
+    const isVideo = activeCall?.callType === "video";
+    const mimeType = isVideo ? "video/webm" : "audio/webm";
+    const ext = isVideo ? "webm" : "webm";
+    const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+    const filePath = `${user?.id}/${callId}.${ext}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from("call-recordings")
+      .upload(filePath, blob, { contentType: mimeType, upsert: true });
+
+    if (uploadError) {
+      console.error("Failed to upload recording:", uploadError);
+      toast.error("Failed to save recording");
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("call-recordings")
+      .getPublicUrl(filePath);
+
+    await supabase
+      .from("calls")
+      .update({ recording_url: urlData.publicUrl })
+      .eq("id", callId);
+
+    toast.success("Call recording saved");
+  }, [user?.id, activeCall?.callType]);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      toast.info("Recording stopped");
+    } else {
+      // Start recording - combine local and remote streams
+      try {
+        const audioCtx = new AudioContext();
+        const dest = audioCtx.createMediaStreamDestination();
+
+        if (localStreamRef.current) {
+          localStreamRef.current.getAudioTracks().forEach((track) => {
+            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+            source.connect(dest);
+          });
+        }
+        if (remoteStreamRef.current) {
+          remoteStreamRef.current.getAudioTracks().forEach((track) => {
+            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+            source.connect(dest);
+          });
+        }
+
+        // For video calls, include video track from remote
+        const tracks = [...dest.stream.getTracks()];
+        if (activeCall?.callType === "video" && remoteStreamRef.current) {
+          const videoTrack = remoteStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) tracks.push(videoTrack);
+        }
+
+        const combinedStream = new MediaStream(tracks);
+        const mimeType = activeCall?.callType === "video" ? "video/webm;codecs=vp8,opus" : "audio/webm;codecs=opus";
+        const recorder = new MediaRecorder(combinedStream, {
+          mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined,
+        });
+
+        recordedChunksRef.current = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+        };
+
+        recorder.start(1000);
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+        toast.success("Recording started");
+      } catch (err) {
+        console.error("Failed to start recording:", err);
+        toast.error("Could not start recording");
+      }
+    }
+  }, [isRecording, activeCall?.callType]);
+
   const endCall = useCallback(async () => {
     const call = activeCall || incomingCall;
     if (!call) return;
+
+    // Save recording if active
+    if (isRecording && recordedChunksRef.current.length > 0) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      // Wait a tick for final data
+      await new Promise((r) => setTimeout(r, 200));
+      await saveRecording(call.callId);
+    }
 
     await supabase
       .from("calls")
@@ -304,7 +409,7 @@ export function useCall() {
       });
     }
     cleanupCall();
-  }, [activeCall, incomingCall, user?.id, cleanupCall]);
+  }, [activeCall, incomingCall, user?.id, cleanupCall, isRecording, saveRecording]);
 
   const missCall = useCallback(async (callId: string) => {
     await supabase
@@ -505,6 +610,7 @@ export function useCall() {
     isScreenSharing,
     isPipMode,
     setIsPipMode,
+    isRecording,
     startCall,
     answerCall,
     declineCall,
@@ -513,6 +619,7 @@ export function useCall() {
     toggleVideo,
     toggleSpeaker,
     toggleScreenShare,
+    toggleRecording,
     localVideoRef,
     remoteVideoRef,
     localStreamRef,
