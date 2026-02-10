@@ -95,7 +95,8 @@ export function MessageContextMenu({
   // Desktop right-click handler
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      if (disabled || isMobile) return;
+      if (disabled) return;
+      if (isMobile) return;
       e.preventDefault();
       e.stopPropagation();
       setPosition({ x: e.clientX, y: e.clientY });
@@ -104,19 +105,25 @@ export function MessageContextMenu({
     [disabled, isMobile]
   );
 
+  // Close the menu on any click/touch outside
   useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
+    const close = (e: Event) => {
+      // Don't close if clicking inside the menu
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-context-menu]')) return;
+      setOpen(false);
+    };
+    // Use a longer timeout to avoid catching the originating right-click event
     const id = setTimeout(() => {
-      document.addEventListener("mousedown", close, { once: true });
-      document.addEventListener("touchstart", close, { once: true });
-      document.addEventListener("click", close, { once: true });
-    }, 50);
+      document.addEventListener("mousedown", close);
+      document.addEventListener("touchstart", close);
+      window.addEventListener("scroll", () => setOpen(false), { once: true, capture: true });
+    }, 100);
     return () => {
       clearTimeout(id);
       document.removeEventListener("mousedown", close);
       document.removeEventListener("touchstart", close);
-      document.removeEventListener("click", close);
     };
   }, [open]);
 
@@ -177,9 +184,11 @@ export function MessageContextMenu({
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
 
           <div
+            data-context-menu
             className="absolute bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-90 fade-in-0 duration-150"
             style={{ left: safeX, top: safeY, width: menuWidth }}
             onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
           >
             {/* Quick emoji reactions row */}
             <div className="flex items-center justify-around px-2 py-1.5 border-b border-border/50 bg-muted/30">
