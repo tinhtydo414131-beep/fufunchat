@@ -1,6 +1,9 @@
 import { Phone, PhoneOff, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CallState } from "@/hooks/useCall";
+import { hapticsImpact, hapticsNotification } from "@/lib/haptics";
+import { ImpactStyle } from "@capacitor/haptics";
+import { NotificationType } from "@capacitor/haptics";
 
 interface IncomingCallDialogProps {
   call: CallState;
@@ -38,15 +41,15 @@ export function IncomingCallDialog({ call, onAnswer, onDecline }: IncomingCallDi
         </div>
 
         <div className="flex items-center gap-6">
-          <Button
-            onClick={onDecline}
+           <Button
+            onClick={() => { hapticsNotification(NotificationType.Warning); onDecline(); }}
             className="w-14 h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white shadow-lg"
             size="icon"
           >
             <PhoneOff className="w-6 h-6" />
           </Button>
           <Button
-            onClick={onAnswer}
+            onClick={() => { hapticsImpact(ImpactStyle.Heavy); onAnswer(); }}
             className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg"
             size="icon"
           >
