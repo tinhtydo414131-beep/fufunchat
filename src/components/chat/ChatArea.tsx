@@ -327,7 +327,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             playNotificationSound();
             hapticsNotification();
             const senderName = profile?.display_name || t("chat.user");
-            const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "📷" : "📎";
+            const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "📷" : newMsg.type === "video" ? "🎬" : "📎";
             sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
             // Update own read receipt since we're viewing this conversation
             updateReadReceipt();
@@ -621,11 +621,12 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           }
 
           const isImage = file.type.startsWith("image/");
+          const isVideo = file.type.startsWith("video/");
           await supabase.from("messages").insert({
             conversation_id: conversationId,
             sender_id: user.id,
             content: url,
-            type: isImage ? "image" : "file",
+            type: isImage ? "image" : isVideo ? "video" : "file",
             reply_to: replyTo?.id || null,
             expires_at: getExpiresAt(),
           } as any);
@@ -912,6 +913,20 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             loading="lazy"
           />
         </button>
+      );
+    }
+
+    if (msg.type === "video" && msg.content) {
+      return (
+        <div className="max-w-[300px] rounded-xl overflow-hidden">
+          <video
+            src={msg.content}
+            controls
+            preload="metadata"
+            className="w-full rounded-xl"
+            style={{ maxHeight: "300px" }}
+          />
+        </div>
       );
     }
 
@@ -1305,7 +1320,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           messages.map((msg, i) => {
             const isMe = msg.sender_id === user?.id;
             const showAvatar = !isMe && (i === 0 || messages[i - 1]?.sender_id !== msg.sender_id);
-            const isMedia = msg.type === "image" || msg.type === "file";
+            const isMedia = msg.type === "image" || msg.type === "video" || msg.type === "file";
             const isSearchMatch = searchResults.includes(msg.id);
             const isCurrentMatch = searchResults[searchIndex] === msg.id;
 
@@ -1382,6 +1397,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                         <p className="truncate text-muted-foreground">
                           {repliedMsg.is_deleted ? t("chat.deletedMessage") :
                             repliedMsg.type === "image" ? "📷" :
+                            repliedMsg.type === "video" ? "🎬" :
                             repliedMsg.type === "file" ? "📎" :
                             repliedMsg.content || ""}
                         </p>
@@ -1518,6 +1534,12 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                   alt={file.name}
                   className="w-10 h-10 rounded object-cover"
                 />
+              ) : file.type.startsWith("video/") ? (
+                <video
+                  src={URL.createObjectURL(file)}
+                  className="w-10 h-10 rounded object-cover"
+                  muted
+                />
               ) : (
                 <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
               )}
@@ -1544,7 +1566,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
               {replyTo.sender?.display_name || t("chat.user")}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {replyTo.type === "image" ? "📷" : replyTo.type === "file" ? "📎" : replyTo.content || ""}
+              {replyTo.type === "image" ? "📷" : replyTo.type === "video" ? "🎬" : replyTo.type === "file" ? "📎" : replyTo.content || ""}
             </p>
           </div>
           <button onClick={() => setReplyTo(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
@@ -1718,7 +1740,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         <input
           ref={imageInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="hidden"
           onChange={handleFileSelect}
