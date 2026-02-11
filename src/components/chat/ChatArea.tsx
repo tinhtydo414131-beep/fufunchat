@@ -771,6 +771,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       mediaRecorder.start(100);
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
+      hapticsImpact();
       setRecordingDuration(0);
       recordingTimerRef.current = setInterval(() => {
         setRecordingDuration((d) => d + 1);
@@ -785,6 +786,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
+    hapticsNotification();
   };
 
   const cancelRecording = () => {
