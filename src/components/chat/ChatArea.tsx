@@ -918,15 +918,24 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
     if (msg.type === "video" && msg.content) {
       return (
-        <div className="max-w-[300px] rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setLightboxUrl(msg.content)}
+          className="block max-w-[300px] rounded-xl overflow-hidden relative group"
+        >
           <video
             src={msg.content}
-            controls
             preload="metadata"
             className="w-full rounded-xl"
             style={{ maxHeight: "300px" }}
+            muted
           />
-        </div>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+              <div className="w-0 h-0 border-l-[16px] border-l-white border-y-[10px] border-y-transparent ml-1" />
+            </div>
+          </div>
+        </button>
       );
     }
 
@@ -1766,11 +1775,13 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       {/* Lightbox with navigation */}
       {lightboxUrl && (() => {
-        const allImages = messages.filter((m) => m.type === "image" && m.content).map((m) => m.content!);
-        const currentIdx = allImages.indexOf(lightboxUrl);
+        const allMedia = messages
+          .filter((m) => (m.type === "image" || m.type === "video") && m.content)
+          .map((m) => ({ url: m.content!, type: m.type as "image" | "video" }));
+        const currentIdx = allMedia.findIndex((m) => m.url === lightboxUrl);
         return (
           <MediaLightbox
-            images={allImages}
+            media={allMedia}
             currentIndex={currentIdx >= 0 ? currentIdx : 0}
             onClose={() => setLightboxUrl(null)}
           />
