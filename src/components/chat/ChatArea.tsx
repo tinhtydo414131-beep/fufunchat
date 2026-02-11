@@ -1213,7 +1213,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                     />
                   </svg>
                 )}
-                <X className="w-3 h-3 relative z-10" />
+                <X className={`w-3 h-3 relative z-10 ${!isAdmin && announcementCountdown <= 5 && announcementCountdown > 0 ? "animate-pulse text-destructive" : ""}`} />
               </button>
             </div>
           )}
