@@ -409,6 +409,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             // Play sound if announcement changed and is not empty
             if (updated.announcement && updated.announcement !== prev.announcement) {
               playNotificationSound();
+              toast("📢 New Announcement", { description: updated.announcement });
             }
             return {
               ...prev,
