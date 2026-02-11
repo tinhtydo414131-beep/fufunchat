@@ -96,6 +96,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  const [announcementFading, setAnnouncementFading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(false);
   const [announcementDraft, setAnnouncementDraft] = useState("");
@@ -424,6 +425,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             };
           });
           setAnnouncementDismissed(false);
+          setAnnouncementFading(false);
         }
       )
       .subscribe();
@@ -440,8 +442,12 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   // Auto-dismiss announcement banner after 30s for non-admin users
   useEffect(() => {
     if (!convInfo?.announcement || announcementDismissed || isAdmin) return;
-    const timer = setTimeout(() => setAnnouncementDismissed(true), 30000);
-    return () => clearTimeout(timer);
+    const fadeTimer = setTimeout(() => setAnnouncementFading(true), 29500);
+    const dismissTimer = setTimeout(() => {
+      setAnnouncementDismissed(true);
+      setAnnouncementFading(false);
+    }, 30000);
+    return () => { clearTimeout(fadeTimer); clearTimeout(dismissTimer); };
   }, [convInfo?.announcement, announcementDismissed, isAdmin]);
 
   useEffect(() => {
@@ -1140,7 +1146,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       {/* Announcement banner */}
       {convInfo?.type === "channel" && (convInfo.announcement || editingAnnouncement) && !announcementDismissed && (
-        <div id="announcement-banner" className="px-4 py-2.5 border-b border-border bg-accent/30 animate-fade-in">
+        <div id="announcement-banner" className={`px-4 py-2.5 border-b border-border bg-accent/30 transition-opacity duration-500 ${announcementFading ? "opacity-0" : "opacity-100 animate-fade-in"}`}>
           {editingAnnouncement ? (
             <div className="flex items-center gap-2">
               <Megaphone className="w-4 h-4 text-primary shrink-0" />
