@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
-import { hapticsNotification } from "@/lib/haptics";
+import { hapticsNotification, hapticsImpact } from "@/lib/haptics";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
@@ -604,6 +604,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     if ((!newMessage.trim() && pendingFiles.length === 0) || !conversationId || !user || sending) return;
 
     setSending(true);
+    hapticsImpact();
 
     try {
       // Upload pending files first

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticsImpact } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -72,7 +73,7 @@ export function MessageContextMenu({
 
       timerRef.current = setTimeout(() => {
         if (!movedRef.current) {
-          if (navigator.vibrate) navigator.vibrate(20);
+          hapticsImpact();
           openMenu(touch.clientX, touch.clientY);
         }
       }, LONG_PRESS_MS);
