@@ -409,7 +409,12 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             // Play sound if announcement changed and is not empty
             if (updated.announcement && updated.announcement !== prev.announcement) {
               playNotificationSound();
-              toast("📢 New Announcement", { description: updated.announcement });
+              toast("📢 New Announcement", {
+                description: updated.announcement,
+                action: { label: "View", onClick: () => {
+                  document.getElementById("announcement-banner")?.scrollIntoView({ behavior: "smooth" });
+                }},
+              });
             }
             return {
               ...prev,
@@ -1128,7 +1133,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       {/* Announcement banner */}
       {convInfo?.type === "channel" && (convInfo.announcement || editingAnnouncement) && !announcementDismissed && (
-        <div className="px-4 py-2.5 border-b border-border bg-accent/30 animate-fade-in">
+        <div id="announcement-banner" className="px-4 py-2.5 border-b border-border bg-accent/30 animate-fade-in">
           {editingAnnouncement ? (
             <div className="flex items-center gap-2">
               <Megaphone className="w-4 h-4 text-primary shrink-0" />
