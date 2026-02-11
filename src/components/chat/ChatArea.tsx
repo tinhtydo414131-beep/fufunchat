@@ -1204,11 +1204,12 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                   <svg className="absolute inset-0 w-6 h-6 -rotate-90" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" className="text-muted-foreground/20" strokeWidth="2" />
                     <circle
-                      cx="12" cy="12" r="10" fill="none" stroke="currentColor" className="text-primary"
+                      cx="12" cy="12" r="10" fill="none" stroke="currentColor"
+                      className={announcementCountdown <= 5 ? "text-destructive" : "text-primary"}
                       strokeWidth="2" strokeLinecap="round"
                       strokeDasharray={`${2 * Math.PI * 10}`}
                       strokeDashoffset={`${2 * Math.PI * 10 * (1 - announcementCountdown / 30)}`}
-                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                      style={{ transition: "stroke-dashoffset 1s linear, color 0.3s ease" }}
                     />
                   </svg>
                 )}
