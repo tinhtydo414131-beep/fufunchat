@@ -15,6 +15,7 @@ import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
+import { VoiceRecordingWaveform } from "./VoiceRecordingWaveform";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { MediaLightbox } from "./MediaLightbox";
@@ -140,6 +141,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const lastTypingRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Listen for wallpaper changes from settings
@@ -757,6 +759,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
       audioChunksRef.current = [];
 
@@ -766,6 +769,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        recordingStreamRef.current = null;
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
         setRecordingDuration(0);
 
@@ -804,6 +808,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       mediaRecorderRef.current.stop();
       audioChunksRef.current = [];
     }
+    recordingStreamRef.current = null;
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     setIsRecording(false);
     setRecordingDuration(0);
@@ -1633,7 +1638,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-2 sm:p-3 border-t border-border bg-card safe-area-bottom">
         {isRecording ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -1644,12 +1649,21 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             >
               <X className="w-5 h-5" />
             </Button>
-            <div className="flex-1 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
-              <span className="text-sm font-medium text-destructive">
-                {t("chat.recording")} {formatDuration(recordingDuration)}
+
+            {/* Realtime waveform */}
+            <VoiceRecordingWaveform
+              stream={recordingStreamRef.current}
+              isRecording={isRecording}
+            />
+
+            {/* Timer */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+              <span className="text-sm font-mono font-medium text-destructive tabular-nums">
+                {formatDuration(recordingDuration)}
               </span>
             </div>
+
             <Button
               type="button"
               size="icon"
