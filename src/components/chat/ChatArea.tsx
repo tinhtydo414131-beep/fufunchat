@@ -437,6 +437,13 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     };
   }, [conversationId, user?.id]);
 
+  // Auto-dismiss announcement banner after 30s for non-admin users
+  useEffect(() => {
+    if (!convInfo?.announcement || announcementDismissed || isAdmin) return;
+    const timer = setTimeout(() => setAnnouncementDismissed(true), 30000);
+    return () => clearTimeout(timer);
+  }, [convInfo?.announcement, announcementDismissed, isAdmin]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
