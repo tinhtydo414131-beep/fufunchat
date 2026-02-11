@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SmilePlus } from "lucide-react";
+import { hapticsSelection } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const QUICK_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🔥", "🎉", "👏"];
@@ -99,6 +100,7 @@ export function MessageReactions({ messageId, isMe }: MessageReactionsProps) {
 
   const toggleReaction = async (emoji: string) => {
     if (!user) return;
+    hapticsSelection();
     setPickerOpen(false);
 
     const existing = reactions.find((r) => r.emoji === emoji && r.user_id === user.id);
