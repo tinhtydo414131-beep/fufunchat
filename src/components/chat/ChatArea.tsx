@@ -97,6 +97,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const [announcementFading, setAnnouncementFading] = useState(false);
+  const [announcementCountdown, setAnnouncementCountdown] = useState(30);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(false);
   const [announcementDraft, setAnnouncementDraft] = useState("");
@@ -426,6 +427,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           });
           setAnnouncementDismissed(false);
           setAnnouncementFading(false);
+          setAnnouncementCountdown(30);
         }
       )
       .subscribe();
@@ -442,12 +444,22 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   // Auto-dismiss announcement banner after 30s for non-admin users
   useEffect(() => {
     if (!convInfo?.announcement || announcementDismissed || isAdmin) return;
-    const fadeTimer = setTimeout(() => setAnnouncementFading(true), 29500);
-    const dismissTimer = setTimeout(() => {
-      setAnnouncementDismissed(true);
-      setAnnouncementFading(false);
-    }, 30000);
-    return () => { clearTimeout(fadeTimer); clearTimeout(dismissTimer); };
+    setAnnouncementCountdown(30);
+    const interval = setInterval(() => {
+      setAnnouncementCountdown((prev) => {
+        if (prev <= 1) {
+          setAnnouncementFading(true);
+          setTimeout(() => {
+            setAnnouncementDismissed(true);
+            setAnnouncementFading(false);
+          }, 500);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
   }, [convInfo?.announcement, announcementDismissed, isAdmin]);
 
   useEffect(() => {
@@ -1184,7 +1196,10 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                   </Button>
                 </>
               )}
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setAnnouncementDismissed(true)}>
+              {!isAdmin && announcementCountdown > 0 && (
+                <span className="text-[10px] text-muted-foreground tabular-nums">{announcementCountdown}s</span>
+              )}
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setAnnouncementDismissed(true); setAnnouncementFading(false); }}>
                 <X className="w-3.5 h-3.5" />
               </Button>
             </div>
