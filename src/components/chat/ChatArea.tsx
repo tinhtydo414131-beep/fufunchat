@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -20,6 +20,7 @@ import { MessageContextMenu } from "./MessageContextMenu";
 import { MediaLightbox } from "./MediaLightbox";
 import { GifPicker } from "./GifPicker";
 import { VideoRecorderDialog } from "./VideoRecorderDialog";
+import { VideoPipPlayer } from "./VideoPipPlayer";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
@@ -98,6 +99,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
+  const [pipVideoUrl, setPipVideoUrl] = useState<string | null>(null);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const [announcementFading, setAnnouncementFading] = useState(false);
@@ -959,24 +961,27 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
     if (msg.type === "video" && msg.content) {
       return (
-        <button
-          type="button"
-          onClick={() => setLightboxUrl(msg.content)}
-          className="block max-w-[300px] rounded-xl overflow-hidden relative group"
-        >
+        <div className="max-w-[300px] rounded-xl overflow-hidden relative group">
           <video
             src={msg.content}
             preload="metadata"
+            controls
+            playsInline
             className="w-full rounded-xl"
             style={{ maxHeight: "300px" }}
-            muted
+            onPlay={() => setPipVideoUrl(msg.content)}
+            onPause={() => { if (pipVideoUrl === msg.content) setPipVideoUrl(null); }}
+            onEnded={() => { if (pipVideoUrl === msg.content) setPipVideoUrl(null); }}
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
-              <div className="w-0 h-0 border-l-[16px] border-l-white border-y-[10px] border-y-transparent ml-1" />
-            </div>
-          </div>
-        </button>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(msg.content)}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Fullscreen"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
       );
     }
 
@@ -1854,6 +1859,18 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         onOpenChange={setVideoRecorderOpen}
         onVideoReady={sendVideoMessage}
       />
+
+      {/* PiP Video Player */}
+      {pipVideoUrl && (
+        <VideoPipPlayer
+          src={pipVideoUrl}
+          onClose={() => setPipVideoUrl(null)}
+          onExpand={() => {
+            setLightboxUrl(pipVideoUrl);
+            setPipVideoUrl(null);
+          }}
+        />
+      )}
     </div>
     </>
   );
