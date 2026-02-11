@@ -19,6 +19,7 @@ import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { MediaLightbox } from "./MediaLightbox";
 import { GifPicker } from "./GifPicker";
+import { VideoRecorderDialog } from "./VideoRecorderDialog";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
@@ -96,6 +97,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const [announcementFading, setAnnouncementFading] = useState(false);
@@ -848,6 +850,45 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const sendVideoMessage = async (blob: Blob) => {
+    if (!conversationId || !user) return;
+    setSending(true);
+    try {
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      const path = `${conversationId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-media")
+        .upload(path, blob, { contentType: blob.type });
+
+      if (uploadError) {
+        toast.error("Video upload failed");
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: urlData.publicUrl,
+        type: "video",
+        reply_to: replyTo?.id || null,
+        expires_at: getExpiresAt(),
+      } as any);
+
+      await supabase
+        .from("conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+
+      setReplyTo(null);
+      toast.success("🎬 Video sent!");
+      const senderName = user.user_metadata?.display_name || user.email?.split("@")[0] || "Someone";
+      onSendPush?.(conversationId, senderName, "🎬 Video message");
+    } finally {
+      setSending(false);
+    }
   };
 
   const recallMessage = async (msg: Message) => {
@@ -1668,6 +1709,17 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 </div>
               )}
             </div>
+            {/* Video record button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-primary"
+              onClick={() => setVideoRecorderOpen(true)}
+              title="Quay video"
+            >
+              <Video className="w-5 h-5" />
+            </Button>
             <Input
               ref={inputRef}
               placeholder={t("chat.inputPlaceholder")}
@@ -1794,6 +1846,13 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         onOpenChange={(open) => { if (!open) setForwardMsg(null); }}
         message={forwardMsg}
         currentConversationId={conversationId}
+      />
+
+      {/* Video Recorder Dialog */}
+      <VideoRecorderDialog
+        open={videoRecorderOpen}
+        onOpenChange={setVideoRecorderOpen}
+        onVideoReady={sendVideoMessage}
       />
     </div>
     </>
