@@ -411,6 +411,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             // Play sound if announcement changed and is not empty
             if (updated.announcement && updated.announcement !== prev.announcement) {
               playNotificationSound();
+              if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
               toast("📢 New Announcement", {
                 description: updated.announcement,
                 action: { label: "View", onClick: () => {
