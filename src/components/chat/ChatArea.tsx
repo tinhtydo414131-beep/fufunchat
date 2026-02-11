@@ -1196,12 +1196,24 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                   </Button>
                 </>
               )}
-              {!isAdmin && announcementCountdown > 0 && (
-                <span className="text-[10px] text-muted-foreground tabular-nums">{announcementCountdown}s</span>
-              )}
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setAnnouncementDismissed(true); setAnnouncementFading(false); }}>
-                <X className="w-3.5 h-3.5" />
-              </Button>
+              <button
+                className="relative h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+                onClick={() => { setAnnouncementDismissed(true); setAnnouncementFading(false); }}
+              >
+                {!isAdmin && announcementCountdown > 0 && (
+                  <svg className="absolute inset-0 w-6 h-6 -rotate-90" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" className="text-muted-foreground/20" strokeWidth="2" />
+                    <circle
+                      cx="12" cy="12" r="10" fill="none" stroke="currentColor" className="text-primary"
+                      strokeWidth="2" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 10}`}
+                      strokeDashoffset={`${2 * Math.PI * 10 * (1 - announcementCountdown / 30)}`}
+                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                    />
+                  </svg>
+                )}
+                <X className="w-3 h-3 relative z-10" />
+              </button>
             </div>
           )}
         </div>
