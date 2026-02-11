@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticsImpact } from "@/lib/haptics";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -65,7 +66,7 @@ export function MobileLongPressMenu({
 
       timerRef.current = setTimeout(() => {
         if (!movedRef.current) {
-          if (navigator.vibrate) navigator.vibrate(20);
+          hapticsImpact();
           setPosition({ x: touch.clientX, y: touch.clientY });
           setOpen(true);
         }

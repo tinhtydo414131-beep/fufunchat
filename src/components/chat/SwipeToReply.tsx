@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticsSelection } from "@/lib/haptics";
 
 interface SwipeToReplyProps {
   children: React.ReactNode;
@@ -55,7 +56,7 @@ export function SwipeToReply({ children, onSwipeReply, isMe, disabled }: SwipeTo
     if (clamped >= SWIPE_THRESHOLD && !triggered.current) {
       triggered.current = true;
       // Haptic feedback if available
-      if (navigator.vibrate) navigator.vibrate(15);
+      hapticsSelection();
     }
   }, [disabled, isMe]);
 
