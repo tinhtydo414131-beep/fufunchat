@@ -733,7 +733,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const maxSize = 20 * 1024 * 1024;
+    const maxSize = 100 * 1024 * 1024;
     const valid = files.filter((f) => {
       if (f.size > maxSize) {
         toast.error(`${f.name} ${t("chat.fileTooLarge")}`);
@@ -989,7 +989,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         setIsDragging(false);
         const files = Array.from(e.dataTransfer.files);
         if (files.length === 0) return;
-        const maxSize = 20 * 1024 * 1024;
+        const maxSize = 100 * 1024 * 1024;
         const valid = files.filter((f) => {
           if (f.size > maxSize) {
             toast.error(`${f.name} ${t("chat.fileTooLarge")}`);
