@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
+import { hapticsNotification } from "@/lib/haptics";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
@@ -411,7 +412,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             // Play sound if announcement changed and is not empty
             if (updated.announcement && updated.announcement !== prev.announcement) {
               playNotificationSound();
-              if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+              hapticsNotification();
               toast("📢 New Announcement", {
                 description: updated.announcement,
                 action: { label: "View", onClick: () => {
