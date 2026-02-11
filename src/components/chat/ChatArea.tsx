@@ -325,6 +325,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           // Send browser notification for messages from others
           if (newMsg.sender_id !== user?.id && !isMutedRef.current) {
             playNotificationSound();
+            hapticsNotification();
             const senderName = profile?.display_name || t("chat.user");
             const body = newMsg.type === "text" ? (newMsg.content || "") : newMsg.type === "image" ? "📷" : "📎";
             sendNotification(`${senderName}`, { body, tag: `msg-${newMsg.id}` });
