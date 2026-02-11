@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Reply, Forward, Pin, PinOff, Trash2, Pencil, Copy, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { hapticsImpact } from "@/lib/haptics";
+import { hapticsImpact, hapticsSelection } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -142,6 +142,7 @@ export function MessageContextMenu({
 
   const toggleReaction = async (emoji: string) => {
     if (!user) return;
+    hapticsSelection();
     setOpen(false);
 
     const { data: existing } = await supabase
