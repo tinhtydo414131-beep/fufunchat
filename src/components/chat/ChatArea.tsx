@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { hapticsNotification, hapticsImpact } from "@/lib/haptics";
+import { NotificationType } from "@capacitor/haptics";
 import { markConversationRead } from "./ConversationList";
 import { useUserStatus, STATUS_EMOJI } from "@/hooks/useUserStatus";
 import { getStoredWallpaper, WALLPAPERS, isCustomWallpaper, getCustomWallpaperUrl, getStoredWallpaperOpacity } from "./SettingsDialog";
@@ -614,6 +615,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           const url = await uploadFile(file);
           if (!url) {
             toast.error(`${file.name} - upload failed`);
+            hapticsNotification(NotificationType.Error);
             continue;
           }
 
@@ -629,6 +631,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         }
         setPendingFiles([]);
         setUploading(false);
+        hapticsNotification();
       }
 
       // Send text message if any
@@ -811,6 +814,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       if (uploadError) {
         toast.error(t("chat.voiceUploadFailed"));
+        hapticsNotification(NotificationType.Error);
         return;
       }
 
