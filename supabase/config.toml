@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.elevenlabs-scribe-token]
 verify_jwt = false
+
+[functions.ai-smart-replies]
+verify_jwt = false
