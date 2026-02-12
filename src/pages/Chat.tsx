@@ -8,6 +8,7 @@ import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
 import { GlobalSearchDialog } from "@/components/chat/GlobalSearchDialog";
+import { BrowseChannelsDialog } from "@/components/chat/BrowseChannelsDialog";
 import { SettingsDialog } from "@/components/chat/SettingsDialog";
 import { MobileBottomNav } from "@/components/chat/MobileBottomNav";
 import { IncomingCallDialog } from "@/components/chat/IncomingCallDialog";
@@ -57,6 +58,7 @@ const Chat = () => {
   const [mobileTab, setMobileTab] = useState<"chats" | "calls" | "profile" | "settings" | "search">("chats");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
+  const [browseChannelsOpen, setBrowseChannelsOpen] = useState(false);
 
   useEffect(() => {
     requestPermission();
@@ -116,6 +118,7 @@ const Chat = () => {
               isOnline={isOnline}
               onGlobalSearch={() => setGlobalSearchOpen(true)}
               onCallHistory={() => setShowCallHistory(true)}
+              onBrowseChannels={() => setBrowseChannelsOpen(true)}
             />
           )}
         </div>
@@ -131,6 +134,11 @@ const Chat = () => {
           open={globalSearchOpen}
           onOpenChange={setGlobalSearchOpen}
           onSelectConversation={(id) => { setSelectedConversation(id); }}
+        />
+        <BrowseChannelsDialog
+          open={browseChannelsOpen}
+          onOpenChange={setBrowseChannelsOpen}
+          onChannelSelected={(id) => { setSelectedConversation(id); setRefreshKey((k) => k + 1); }}
         />
         {incomingCall && (
           <IncomingCallDialog call={incomingCall} onAnswer={answerCall} onDecline={declineCall} />

@@ -1745,7 +1745,13 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-2 sm:p-3 border-t border-border bg-card safe-area-bottom">
-        {isRecording ? (
+        {/* Channel: only admins can post */}
+        {convInfo?.type === "channel" && !isAdmin ? (
+          <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
+            <Megaphone className="w-4 h-4" />
+            <span className="text-sm">Only admins can post in this channel</span>
+          </div>
+        ) : isRecording ? (
           <div className="flex items-center gap-2">
             <Button
               type="button"
