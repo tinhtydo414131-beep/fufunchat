@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, Send, Bot, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 
 const AI_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 
@@ -215,13 +216,19 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap",
+                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      ? "bg-primary text-primary-foreground rounded-br-md whitespace-pre-wrap"
                       : "bg-muted text-foreground rounded-bl-md"
                   )}
                 >
-                  {msg.content}
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-foreground/10 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:overflow-x-auto [&_pre]:text-xs [&_code]:bg-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-2 [&_blockquote]:italic [&_blockquote]:text-muted-foreground">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                   {msg.role === "assistant" && isLoading && i === messages.length - 1 && (
                     <span className="inline-block w-1.5 h-4 bg-foreground/50 ml-0.5 animate-pulse rounded-sm" />
                   )}
