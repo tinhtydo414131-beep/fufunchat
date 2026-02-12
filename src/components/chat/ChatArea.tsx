@@ -15,6 +15,7 @@ import { UserProfilePopup } from "./UserProfilePopup";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { SwipeToReply } from "./SwipeToReply";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
+import { TextToSpeechButton } from "./TextToSpeechButton";
 import { VoiceRecordingWaveform } from "./VoiceRecordingWaveform";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
@@ -1503,6 +1504,9 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                     <MessageReactions messageId={msg.id} isMe={isMe} />
                   )}
                   <div className={cn("flex items-center gap-1 px-1", isMe && "justify-end")}>
+                    {msg.type === "text" && msg.content && !msg.is_deleted && (
+                      <TextToSpeechButton text={msg.content} isMe={isMe} />
+                    )}
                     {pinnedMessageIds.has(msg.id) && (
                       <Pin className="w-2.5 h-2.5 text-primary" />
                     )}
