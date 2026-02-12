@@ -17,6 +17,7 @@ import { SwipeToReply } from "./SwipeToReply";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { TextToSpeechButton } from "./TextToSpeechButton";
 import { VoiceRecordingWaveform } from "./VoiceRecordingWaveform";
+import { RealtimeTranscribeButton } from "./RealtimeTranscribeButton";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { MediaLightbox } from "./MediaLightbox";
@@ -1808,16 +1809,26 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 </Button>
               </>
             ) : (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={startRecording}
-                className="shrink-0 text-muted-foreground hover:text-primary"
-                title={t("chat.voiceRecord")}
-              >
-                <Mic className="w-5 h-5" />
-              </Button>
+              <>
+                <RealtimeTranscribeButton
+                  onTranscript={(text) => {
+                    setNewMessage((prev) => {
+                      const trimmed = prev.trim();
+                      return trimmed ? trimmed + " " + text : text;
+                    });
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={startRecording}
+                  className="shrink-0 text-muted-foreground hover:text-primary"
+                  title={t("chat.voiceRecord")}
+                >
+                  <Mic className="w-5 h-5" />
+                </Button>
+              </>
             )}
           </div>
         )}
