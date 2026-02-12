@@ -9,6 +9,7 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import { NewChatDialog } from "@/components/chat/NewChatDialog";
 import { GlobalSearchDialog } from "@/components/chat/GlobalSearchDialog";
 import { BrowseChannelsDialog } from "@/components/chat/BrowseChannelsDialog";
+import { AIChatPanel } from "@/components/chat/AIChatPanel";
 import { SettingsDialog } from "@/components/chat/SettingsDialog";
 import { MobileBottomNav } from "@/components/chat/MobileBottomNav";
 import { IncomingCallDialog } from "@/components/chat/IncomingCallDialog";
@@ -18,7 +19,8 @@ import { CallPipWidget } from "@/components/chat/CallPipWidget";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone } from "lucide-react";
+import { ArrowLeft, Phone, Bot, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Chat = () => {
   const { signOut } = useAuth();
@@ -59,6 +61,7 @@ const Chat = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [browseChannelsOpen, setBrowseChannelsOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
 
   useEffect(() => {
     requestPermission();
@@ -177,6 +180,18 @@ const Chat = () => {
             remoteStreamRef={remoteStreamRef}
           />
         )}
+        {/* AI Chat FAB + Panel */}
+        <Button
+          onClick={() => setAiChatOpen((v) => !v)}
+          className={cn(
+            "fixed bottom-6 right-6 z-40 h-12 w-12 rounded-full shadow-lg",
+            aiChatOpen ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"
+          )}
+          size="icon"
+        >
+          {aiChatOpen ? <X className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+        </Button>
+        <AIChatPanel open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
       </div>
     );
   }
@@ -275,6 +290,20 @@ const Chat = () => {
           remoteStreamRef={remoteStreamRef}
         />
       )}
+      {/* AI Chat FAB + Panel */}
+      {!mobileInChat && (
+        <Button
+          onClick={() => setAiChatOpen((v) => !v)}
+          className={cn(
+            "fixed bottom-20 right-4 z-40 h-11 w-11 rounded-full shadow-lg",
+            aiChatOpen ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"
+          )}
+          size="icon"
+        >
+          {aiChatOpen ? <X className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+        </Button>
+      )}
+      <AIChatPanel open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
     </div>
   );
 };
