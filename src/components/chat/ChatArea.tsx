@@ -18,6 +18,7 @@ import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 import { TextToSpeechButton } from "./TextToSpeechButton";
 import { VoiceRecordingWaveform } from "./VoiceRecordingWaveform";
 import { RealtimeTranscribeButton } from "./RealtimeTranscribeButton";
+import { SmartReplySuggestions } from "./SmartReplySuggestions";
 import { MobileLongPressMenu } from "./MobileLongPressMenu";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { MediaLightbox } from "./MediaLightbox";
@@ -83,7 +84,7 @@ function getFileName(url: string) {
 
 export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: ChatAreaProps) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { sendNotification } = useNotifications();
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
@@ -1637,6 +1638,20 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
           <button onClick={() => setReplyTo(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Smart Reply Suggestions */}
+      {messages.length > 0 && !isRecording && (
+        <div className="px-2 sm:px-3 pt-1.5 border-t border-border/50 bg-card">
+          <SmartReplySuggestions
+            messages={messages.slice(-6).filter(m => m.type === "text" && m.content).map(m => ({
+              content: m.content || "",
+              isMe: m.sender_id === user?.id,
+            }))}
+            language={language}
+            onSelect={(reply) => setNewMessage(reply)}
+          />
         </div>
       )}
 
