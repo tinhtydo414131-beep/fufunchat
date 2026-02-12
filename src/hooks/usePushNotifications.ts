@@ -36,7 +36,7 @@ export function usePushNotifications() {
       await navigator.serviceWorker.ready;
 
       // Check existing subscription
-      let subscription = await registration.pushManager.getSubscription();
+      let subscription = await (registration as any).pushManager.getSubscription();
 
       if (!subscription) {
         const vapidKey = await getVapidKey();
@@ -54,7 +54,7 @@ export function usePushNotifications() {
           applicationServerKey[i] = rawData.charCodeAt(i);
         }
 
-        subscription = await registration.pushManager.subscribe({
+        subscription = await (registration as any).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey,
         });
