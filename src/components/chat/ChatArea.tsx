@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useE2EE } from "@/hooks/useE2EE";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone, Maximize2 } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone, Maximize2, Lock } from "lucide-react";
+import { isEncryptedMessage } from "@/lib/e2ee";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { EmojiPicker } from "./EmojiPicker";
@@ -86,6 +88,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const { user } = useAuth();
   const { t, language } = useTranslation();
   const { sendNotification } = useNotifications();
+  const { encrypt, decrypt, e2eeEnabled, ready: e2eeReady } = useE2EE();
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
   const { trigger: triggerSnow, element: snowElement } = useSnow();
@@ -145,6 +148,41 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  // E2EE: decrypted content cache
+  const [decryptedMap, setDecryptedMap] = useState<Map<string, string>>(new Map());
+  const decryptingRef = useRef<Set<string>>(new Set());
+
+  // Decrypt encrypted messages when messages change
+  useEffect(() => {
+    if (!e2eeEnabled || !messages.length) return;
+    const toDecrypt = messages.filter(
+      (m) => m.type === "text" && isEncryptedMessage(m.content) && !decryptedMap.has(m.id) && !decryptingRef.current.has(m.id)
+    );
+    if (toDecrypt.length === 0) return;
+
+    toDecrypt.forEach((m) => decryptingRef.current.add(m.id));
+
+    Promise.all(
+      toDecrypt.map(async (m) => {
+        try {
+          const plain = await decrypt(m.content!, m.sender_id);
+          return { id: m.id, text: plain };
+        } catch {
+          return { id: m.id, text: null };
+        }
+      })
+    ).then((results) => {
+      setDecryptedMap((prev) => {
+        const next = new Map(prev);
+        results.forEach((r) => {
+          if (r.text) next.set(r.id, r.text);
+          decryptingRef.current.delete(r.id);
+        });
+        return next;
+      });
+    });
+  }, [messages, e2eeEnabled, decrypt, decryptedMap]);
+
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Listen for wallpaper changes from settings
@@ -305,6 +343,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
   useEffect(() => {
     if (!conversationId) return;
+    setDecryptedMap(new Map());
+    decryptingRef.current.clear();
     if (user) markConversationRead(user.id, conversationId);
     updateReadReceipt();
     loadMessages();
@@ -647,8 +687,17 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
       // Send text message if any
       if (newMessage.trim()) {
-        const content = newMessage.trim();
+        let content = newMessage.trim();
         setNewMessage("");
+
+        // E2EE: encrypt for direct chats if both parties have keys
+        if (e2eeEnabled && convInfo?.type === "direct" && convInfo.otherUserId) {
+          const encrypted = await encrypt(content, convInfo.otherUserId);
+          if (encrypted) {
+            content = encrypted;
+          }
+        }
+
         const { error } = await supabase.from("messages").insert({
           conversation_id: conversationId,
           sender_id: user.id,
@@ -1016,6 +1065,25 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       return <VoiceMessagePlayer src={msg.content} isMe={isMe} />;
     }
 
+    // E2EE: show decrypted content for encrypted messages
+    if (msg.type === "text" && isEncryptedMessage(msg.content)) {
+      const decrypted = decryptedMap.get(msg.id);
+      if (decrypted) {
+        return (
+          <span className="flex items-center gap-1.5">
+            <Lock className="w-3 h-3 text-emerald-500 shrink-0" />
+            <span>{decrypted}</span>
+          </span>
+        );
+      }
+      return (
+        <span className="flex items-center gap-1.5 text-muted-foreground italic">
+          <Lock className="w-3 h-3 shrink-0" />
+          <span>Decrypting…</span>
+        </span>
+      );
+    }
+
     return msg.content;
   };
 
@@ -1107,6 +1175,11 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${t({ online: "chat.active", away: "chat.away", busy: "chat.busy", offline: "chat.offline" }[otherUserStatus.status as string] || "chat.offline")}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
+            {e2eeEnabled && (
+              <p className="text-[10px] text-emerald-300 flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5" /> E2E Encrypted
+              </p>
+            )}
           </div>
           {onStartCall && (
             <>
