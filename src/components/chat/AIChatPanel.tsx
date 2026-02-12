@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Send, Bot, Sparkles, Trash2 } from "lucide-react";
+import { X, Send, Bot, Sparkles, Trash2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -233,14 +233,29 @@ export function AIChatPanel({ open, onClose }: AIChatPanelProps) {
                             const codeStr = String(children).replace(/\n$/, "");
                             if (match) {
                               return (
-                                <SyntaxHighlighter
-                                  style={oneDark}
-                                  language={match[1]}
-                                  PreTag="div"
-                                  customStyle={{ borderRadius: "0.5rem", fontSize: "0.75rem", margin: "0.25rem 0" }}
-                                >
-                                  {codeStr}
-                                </SyntaxHighlighter>
+                                <div className="relative group/code my-1">
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(codeStr);
+                                      const btn = document.activeElement as HTMLButtonElement;
+                                      btn?.setAttribute("data-copied", "true");
+                                      setTimeout(() => btn?.removeAttribute("data-copied"), 2000);
+                                    }}
+                                    className="absolute right-2 top-2 p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white opacity-0 group-hover/code:opacity-100 transition-opacity z-10 [&[data-copied=true]_svg:first-child]:hidden [&[data-copied=true]_svg:last-child]:block"
+                                    title="Copy code"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <Check className="w-3.5 h-3.5 hidden text-green-400" />
+                                  </button>
+                                  <SyntaxHighlighter
+                                    style={oneDark}
+                                    language={match[1]}
+                                    PreTag="div"
+                                    customStyle={{ borderRadius: "0.5rem", fontSize: "0.75rem", margin: 0 }}
+                                  >
+                                    {codeStr}
+                                  </SyntaxHighlighter>
+                                </div>
                               );
                             }
                             return <code className={className} {...props}>{children}</code>;
