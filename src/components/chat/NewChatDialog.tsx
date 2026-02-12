@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageCircle, Users, X, Check, Mail, Copy, ExternalLink } from "lucide-react";
+import { Search, MessageCircle, Users, X, Check, Mail, Copy, ExternalLink, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useI18n";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Profile {
   user_id: string;
@@ -39,6 +41,10 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
   const [emailSearching, setEmailSearching] = useState(false);
   const [emailResult, setEmailResult] = useState<Profile | null>(null);
   const [emailNotFound, setEmailNotFound] = useState(false);
+  // Channel creation state
+  const [channelName, setChannelName] = useState("");
+  const [channelDescription, setChannelDescription] = useState("");
+  const [channelIsPublic, setChannelIsPublic] = useState(true);
 
   const resetState = () => {
     setSearch("");
@@ -50,6 +56,9 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
     setEmailSearch("");
     setEmailResult(null);
     setEmailNotFound(false);
+    setChannelName("");
+    setChannelDescription("");
+    setChannelIsPublic(true);
   };
 
   const searchUsers = async (query: string, isGroup = false) => {
@@ -190,6 +199,41 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
     }
   };
 
+  const createChannel = async () => {
+    if (!user || creating || !channelName.trim()) return;
+    setCreating(true);
+
+    try {
+      const convId = crypto.randomUUID();
+      const { error: convError } = await supabase
+        .from("conversations")
+        .insert({
+          id: convId,
+          type: "channel",
+          name: channelName.trim(),
+          description: channelDescription.trim() || null,
+          is_public: channelIsPublic,
+        });
+      if (convError) throw convError;
+
+      const { error: selfError } = await supabase.from("conversation_members").insert({
+        conversation_id: convId,
+        user_id: user.id,
+        role: "admin",
+      });
+      if (selfError) throw selfError;
+
+      toast.success(`📢 Channel "${channelName.trim()}" created!`);
+      onConversationCreated(convId);
+      onOpenChange(false);
+      resetState();
+    } catch (error: any) {
+      toast.error("Failed to create channel");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const isMemberSelected = (userId: string) => selectedMembers.some((m) => m.user_id === userId);
 
   const searchByEmail = async () => {
@@ -233,15 +277,18 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
         </DialogHeader>
 
         <Tabs defaultValue="direct" className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="direct" className="gap-1.5 text-xs">
-              <MessageCircle className="w-4 h-4" /> {t("newChat.direct")}
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="direct" className="gap-1 text-xs">
+              <MessageCircle className="w-3.5 h-3.5" /> {t("newChat.direct")}
             </TabsTrigger>
-            <TabsTrigger value="email" className="gap-1.5 text-xs">
-              <Mail className="w-4 h-4" /> Email
+            <TabsTrigger value="email" className="gap-1 text-xs">
+              <Mail className="w-3.5 h-3.5" /> Email
             </TabsTrigger>
-            <TabsTrigger value="group" className="gap-1.5 text-xs">
-              <Users className="w-4 h-4" /> {t("newChat.groupTab")}
+            <TabsTrigger value="group" className="gap-1 text-xs">
+              <Users className="w-3.5 h-3.5" /> {t("newChat.groupTab")}
+            </TabsTrigger>
+            <TabsTrigger value="channel" className="gap-1 text-xs">
+              <Megaphone className="w-3.5 h-3.5" /> Channel
             </TabsTrigger>
           </TabsList>
 
@@ -458,6 +505,36 @@ export function NewChatDialog({ open, onOpenChange, onConversationCreated }: New
                 {t("newChat.minMembers")}
               </p>
             )}
+          </TabsContent>
+
+          <TabsContent value="channel" className="space-y-4 mt-4">
+            <Input
+              placeholder="Channel name"
+              value={channelName}
+              onChange={(e) => setChannelName(e.target.value)}
+            />
+            <Textarea
+              placeholder="Channel description (optional)"
+              value={channelDescription}
+              onChange={(e) => setChannelDescription(e.target.value)}
+              rows={2}
+              className="resize-none"
+            />
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div>
+                <p className="text-sm font-medium">Public channel</p>
+                <p className="text-xs text-muted-foreground">Anyone can find and join</p>
+              </div>
+              <Switch checked={channelIsPublic} onCheckedChange={setChannelIsPublic} />
+            </div>
+            <Button
+              onClick={createChannel}
+              disabled={creating || !channelName.trim()}
+              className="w-full"
+            >
+              <Megaphone className="w-4 h-4 mr-2" />
+              {creating ? "Creating..." : "Create Channel"}
+            </Button>
           </TabsContent>
         </Tabs>
       </DialogContent>

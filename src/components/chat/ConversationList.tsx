@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone, Menu, Users, Pin, PinOff, Check, CheckCheck } from "lucide-react";
+import { MessageCircle, Search, Plus, LogOut, User, SearchCheck, Settings, Phone, Menu, Users, Pin, PinOff, Check, CheckCheck, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDialog } from "./SettingsDialog";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ interface ConversationListProps {
   isOnline: (userId: string) => boolean;
   onGlobalSearch?: () => void;
   onCallHistory?: () => void;
+  onBrowseChannels?: () => void;
 }
 
 function getLastReadKey(userId: string, convId: string) {
@@ -91,12 +92,18 @@ function ConversationItem({ conv, name, avatarUrl, colorClass, isPinned, isSelec
         )}
       >
         <div className="relative">
-          <Avatar className="w-[50px] h-[50px] shrink-0">
-            <AvatarImage src={avatarUrl || undefined} />
-            <AvatarFallback className={cn("text-sm font-semibold", colorClass)}>
-              {name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          {conv.type === "channel" ? (
+            <div className="w-[50px] h-[50px] shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+              <Megaphone className="w-6 h-6 text-primary" />
+            </div>
+          ) : (
+            <Avatar className="w-[50px] h-[50px] shrink-0">
+              <AvatarImage src={avatarUrl || undefined} />
+              <AvatarFallback className={cn("text-sm font-semibold", colorClass)}>
+                {name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          )}
           {conv.type === "direct" && conv.other_user_id && isOnline(conv.other_user_id) && (
             <span className="absolute bottom-0 end-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
           )}
@@ -127,7 +134,7 @@ function ConversationItem({ conv, name, avatarUrl, colorClass, isPinned, isSelec
                 {conv.last_message || (
                   conv.type === "direct" && conv.other_user_id
                     ? isOnline(conv.other_user_id) ? t("sidebar.active") : t("sidebar.offline")
-                    : conv.type === "group" ? `👥 ${t("sidebar.group")}` : t("sidebar.chat")
+                    : conv.type === "group" ? `👥 ${t("sidebar.group")}` : conv.type === "channel" ? "📢 Channel" : t("sidebar.chat")
                 )}
               </span>
             </p>
@@ -165,7 +172,7 @@ function ConversationItem({ conv, name, avatarUrl, colorClass, isPinned, isSelec
   );
 }
 
-export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch, onCallHistory }: ConversationListProps) {
+export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, refreshKey, isOnline, onGlobalSearch, onCallHistory, onBrowseChannels }: ConversationListProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -371,6 +378,11 @@ export function ConversationList({ selectedId, onSelect, onNewChat, onSignOut, r
             <DropdownMenuItem onClick={onNewChat} className="gap-3 py-2.5 cursor-pointer">
               <Users className="w-4 h-4" /> New Group
             </DropdownMenuItem>
+            {onBrowseChannels && (
+              <DropdownMenuItem onClick={onBrowseChannels} className="gap-3 py-2.5 cursor-pointer">
+                <Megaphone className="w-4 h-4" /> Browse Channels
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 py-2.5 cursor-pointer">
               <User className="w-4 h-4" /> Profile
