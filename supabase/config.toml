@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.push-notify]
 verify_jwt = false
+
+[functions.elevenlabs-transcribe]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
