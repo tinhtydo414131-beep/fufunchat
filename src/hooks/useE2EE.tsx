@@ -128,11 +128,18 @@ export function useE2EE() {
     }
   }, [getRecipientPublicKey]);
 
+  // Check if a recipient has a public key (for UI warnings)
+  const checkRecipientHasKey = useCallback(async (userId: string): Promise<boolean> => {
+    const key = await getRecipientPublicKey(userId);
+    return key !== null;
+  }, [getRecipientPublicKey]);
+
   return {
     ready,
     e2eeEnabled,
     encrypt,
     decrypt,
     isEncryptedMessage,
+    checkRecipientHasKey,
   };
 }

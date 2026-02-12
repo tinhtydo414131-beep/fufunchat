@@ -88,7 +88,8 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const { user } = useAuth();
   const { t, language } = useTranslation();
   const { sendNotification } = useNotifications();
-  const { encrypt, decrypt, e2eeEnabled, ready: e2eeReady } = useE2EE();
+  const { encrypt, decrypt, e2eeEnabled, ready: e2eeReady, checkRecipientHasKey } = useE2EE();
+  const [recipientHasKey, setRecipientHasKey] = useState<boolean | null>(null);
   const { getUserStatus, statusMap } = useUserStatus();
   const { trigger: triggerConfetti, element: confettiElement } = useConfetti();
   const { trigger: triggerSnow, element: snowElement } = useSnow();
@@ -249,6 +250,15 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
       setOtherUserStatus(null);
     }
   }, [convInfo?.otherUserId, statusMap]);
+
+  // Check if recipient has E2EE key
+  useEffect(() => {
+    if (e2eeEnabled && convInfo?.type === "direct" && convInfo.otherUserId) {
+      checkRecipientHasKey(convInfo.otherUserId).then(setRecipientHasKey);
+    } else {
+      setRecipientHasKey(null);
+    }
+  }, [e2eeEnabled, convInfo?.otherUserId, convInfo?.type, checkRecipientHasKey]);
 
   const loadPinnedMessages = useCallback(async () => {
     if (!conversationId) return;
@@ -1175,9 +1185,14 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                 ? `${STATUS_EMOJI[otherUserStatus.status as keyof typeof STATUS_EMOJI] || "⚫"} ${t({ online: "chat.active", away: "chat.away", busy: "chat.busy", offline: "chat.offline" }[otherUserStatus.status as string] || "chat.offline")}${otherUserStatus.custom_text ? ` · ${otherUserStatus.custom_text}` : ""}`
                 : isOnline(convInfo.otherUserId) ? t("chat.active") : t("chat.offline")}
             </p>
-            {e2eeEnabled && (
+            {e2eeEnabled && recipientHasKey === true && (
               <p className="text-[10px] text-emerald-300 flex items-center gap-0.5">
                 <Lock className="w-2.5 h-2.5" /> E2E Encrypted
+              </p>
+            )}
+            {e2eeEnabled && recipientHasKey === false && (
+              <p className="text-[10px] text-yellow-300 flex items-center gap-0.5" title="Người nhận chưa thiết lập mã hóa đầu cuối. Tin nhắn sẽ gửi không mã hóa cho đến khi họ đăng nhập lại.">
+                ⚠️ Chưa mã hóa — người nhận chưa có key
               </p>
             )}
           </div>
