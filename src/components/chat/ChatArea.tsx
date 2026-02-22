@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone, Maximize2, Lock } from "lucide-react";
+import { Send, Sparkles, Paperclip, Image as ImageIcon, X, FileText, Download, Users, Settings, Reply, Trash2, Undo2, Search, ChevronUp, ChevronDown, Mic, Square, Play, Pause, Forward, Pin, PinOff, Pencil, Check, CheckCheck, BellOff, Bell, Clock, Phone, Video, Timer, TimerOff, Megaphone, Maximize2, Lock, BarChart3, MapPin } from "lucide-react";
 import { isEncryptedMessage } from "@/lib/e2ee";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -28,6 +28,10 @@ import { GifPicker } from "./GifPicker";
 import { VideoRecorderDialog } from "./VideoRecorderDialog";
 import { VideoPipPlayer } from "./VideoPipPlayer";
 import { useConfetti, isCelebrationMessage, useSnow, isSnowMessage, useFire, isFireMessage } from "./ConfettiEffect";
+import { PollMessage } from "./PollMessage";
+import { LocationMessage } from "./LocationMessage";
+import { TranslateButton } from "./TranslateButton";
+import { CreatePollDialog } from "./CreatePollDialog";
 
 const ANGRY_EMOJIS = ["😡", "🤬", "😤", "💢", "👿", "😠"];
 function isAngryMessage(content: string | null): boolean {
@@ -107,6 +111,7 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [videoRecorderOpen, setVideoRecorderOpen] = useState(false);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
   const [pipVideoUrl, setPipVideoUrl] = useState<string | null>(null);
   const [convInfo, setConvInfo] = useState<{ type: string; name: string | null; memberCount: number; otherUserId?: string; otherUserName?: string; disappearAfter?: number | null; announcement?: string | null; description?: string | null } | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
@@ -921,6 +926,36 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  const sendLocationMessage = async () => {
+    if (!conversationId || !user) return;
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ vị trí");
+      return;
+    }
+    toast.info("Đang lấy vị trí...");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const content = JSON.stringify({ lat: latitude, lng: longitude });
+        const { error } = await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content,
+          type: "location",
+        } as any);
+        if (error) toast.error("Không thể gửi vị trí");
+        else {
+          toast.success("📍 Đã chia sẻ vị trí!");
+          await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+          const senderName = user.user_metadata?.display_name || user.email?.split("@")[0] || "Someone";
+          onSendPush?.(conversationId, senderName, "📍 Shared location");
+        }
+      },
+      () => toast.error("Không thể lấy vị trí. Hãy cho phép truy cập vị trí."),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const sendVideoMessage = async (blob: Blob) => {
     if (!conversationId || !user) return;
     setSending(true);
@@ -1073,6 +1108,14 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
 
     if (msg.type === "voice" && msg.content) {
       return <VoiceMessagePlayer src={msg.content} isMe={isMe} />;
+    }
+
+    if (msg.type === "poll" && msg.content) {
+      return <PollMessage pollId={msg.content} isMe={isMe} />;
+    }
+
+    if (msg.type === "location" && msg.content) {
+      return <LocationMessage content={msg.content} isMe={isMe} />;
     }
 
     // E2EE: show decrypted content for encrypted messages
@@ -1597,6 +1640,14 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
                     {msg.type === "text" && msg.content && !msg.is_deleted && (
                       <TextToSpeechButton text={msg.content} isMe={isMe} />
                     )}
+                    {msg.type === "text" && msg.content && !msg.is_deleted && !isMe && (
+                      <TranslateButton
+                        text={msg.content}
+                        messageId={msg.id}
+                        targetLanguage={language}
+                        isMe={isMe}
+                      />
+                    )}
                     {pinnedMessageIds.has(msg.id) && (
                       <Pin className="w-2.5 h-2.5 text-primary" />
                     )}
@@ -1853,6 +1904,28 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
             >
               <Video className="w-5 h-5" />
             </Button>
+            {/* Poll button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-primary"
+              onClick={() => setPollDialogOpen(true)}
+              title="Tạo bình chọn"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </Button>
+            {/* Location button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-muted-foreground hover:text-primary"
+              onClick={sendLocationMessage}
+              title="Chia sẻ vị trí"
+            >
+              <MapPin className="w-5 h-5" />
+            </Button>
             <Input
               ref={inputRef}
               placeholder={t("chat.inputPlaceholder")}
@@ -1997,6 +2070,15 @@ export function ChatArea({ conversationId, isOnline, onStartCall, onSendPush }: 
         onOpenChange={setVideoRecorderOpen}
         onVideoReady={sendVideoMessage}
       />
+
+      {/* Create Poll Dialog */}
+      {conversationId && (
+        <CreatePollDialog
+          open={pollDialogOpen}
+          onOpenChange={setPollDialogOpen}
+          conversationId={conversationId}
+        />
+      )}
 
       {/* PiP Video Player */}
       {pipVideoUrl && (

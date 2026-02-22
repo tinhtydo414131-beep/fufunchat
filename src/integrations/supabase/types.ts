@@ -323,6 +323,104 @@ export type Database = {
           },
         ]
       }
+      poll_options: {
+        Row: {
+          id: string
+          option_text: string
+          poll_id: string
+          position: number | null
+        }
+        Insert: {
+          id?: string
+          option_text: string
+          poll_id: string
+          position?: number | null
+        }
+        Update: {
+          id?: string
+          option_text?: string
+          poll_id?: string
+          position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          creator_id: string
+          id: string
+          is_anonymous: boolean | null
+          is_multiple_choice: boolean | null
+          question: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_anonymous?: boolean | null
+          is_multiple_choice?: boolean | null
+          question: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_anonymous?: boolean | null
+          is_multiple_choice?: boolean | null
+          question?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

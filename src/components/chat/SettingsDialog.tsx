@@ -82,6 +82,12 @@ export const WALLPAPERS: {
   { id: "bubbles", labelKey: "wallpaper.bubbles", gradient: "radial-gradient(circle at 20% 50%, hsl(var(--fun-pink) / 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(var(--fun-mint) / 0.15) 0%, transparent 50%), radial-gradient(circle at 60% 80%, hsl(var(--fun-lavender) / 0.15) 0%, transparent 50%)" },
   { id: "warm", labelKey: "wallpaper.warm", gradient: "linear-gradient(135deg, hsl(var(--fun-gold) / 0.12) 0%, hsl(var(--fun-pink) / 0.08) 50%, hsl(var(--fun-lavender) / 0.1) 100%)" },
   { id: "ocean", labelKey: "wallpaper.ocean", gradient: "linear-gradient(180deg, hsl(var(--fun-mint) / 0.1) 0%, hsl(var(--background)) 40%, hsl(var(--fun-lavender) / 0.08) 100%)" },
+  // New theme presets
+  { id: "forest", labelKey: "wallpaper.forest", gradient: "linear-gradient(160deg, hsl(140 40% 30% / 0.12) 0%, hsl(120 30% 20% / 0.08) 50%, hsl(80 40% 50% / 0.1) 100%)" },
+  { id: "sunset", labelKey: "wallpaper.sunset", gradient: "linear-gradient(135deg, hsl(30 90% 60% / 0.15) 0%, hsl(350 80% 55% / 0.12) 50%, hsl(280 60% 50% / 0.1) 100%)" },
+  { id: "galaxy", labelKey: "wallpaper.galaxy", gradient: "radial-gradient(ellipse at 30% 20%, hsl(260 80% 50% / 0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, hsl(200 90% 50% / 0.12) 0%, transparent 50%), linear-gradient(180deg, hsl(240 30% 15% / 0.1) 0%, hsl(280 40% 20% / 0.08) 100%)" },
+  { id: "minimal", labelKey: "wallpaper.minimal", gradient: "linear-gradient(180deg, hsl(var(--muted) / 0.3) 0%, hsl(var(--background)) 100%)" },
+  { id: "cherry", labelKey: "wallpaper.cherry", gradient: "radial-gradient(circle at 50% 0%, hsl(340 80% 70% / 0.12) 0%, transparent 60%), radial-gradient(circle at 20% 80%, hsl(330 70% 60% / 0.08) 0%, transparent 40%)" },
 ];
 
 const LANGUAGES = [
@@ -280,7 +286,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
               {WALLPAPERS.map((wp) => {
                 const isSelected = !hasCustomWallpaper && wallpaper === wp.id;
                 const previewStyle: React.CSSProperties = {};
