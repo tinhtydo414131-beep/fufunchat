@@ -1,118 +1,139 @@
 
 
-# FUN CHAT 💬 — MVP Plan
-*"Free to Join. Free to Use. Earn Together."*
+# Plan: Thêm 4 tính năng mới cho FUN Chat
 
-## Vision
-Xây dựng một ứng dụng chat web hiện đại, giao diện sáng sạch theo phong cách "Light Aura 5D", hoạt động thật với realtime messaging, sẵn sàng cho early adopters sử dụng hàng ngày.
-
----
-
-## Phase 1: Nền tảng (Lovable Cloud + Auth)
-
-### Đăng ký / Đăng nhập
-- Đăng ký bằng email + mật khẩu
-- Đăng nhập với Google (OAuth)
-- Profile cơ bản: tên hiển thị, avatar, bio ngắn
-- Ngôn ngữ UX tích cực: "Chào mừng bạn đến với ánh sáng ✨" thay vì "Create account"
-
-### Trang chủ Chat
-- Sidebar trái: danh sách conversations (giống Messenger)
-- Khu vực chat chính ở giữa
-- Responsive: hoạt động tốt trên mobile browser
+## Tổng quan
+Thêm 4 tính năng lớn vào ứng dụng chat: **Polls/Bình chọn**, **Location Sharing**, **Message Translation**, và **Chat Themes nâng cao**. Mỗi tính năng sẽ bao gồm cả backend (database tables, RLS policies) và frontend (UI components).
 
 ---
 
-## Phase 2: Core Chat Features
+## 1. Polls / Bình chọn trong chat
 
-### Chat 1-1
-- Tìm kiếm người dùng và bắt đầu chat
-- Gửi tin nhắn text realtime (Supabase Realtime)
-- Emoji picker tích hợp
-- Typing indicator ("đang soạn tin...")
-- Trạng thái đã xem (seen status)
-- Reply tin nhắn cụ thể
-- Reactions (❤️ 👍 😂 ✨ 🙏)
+Cho phép tạo khảo sát ngay trong cuộc trò chuyện, mọi người vote và xem kết quả real-time.
 
-### Gửi media
-- Gửi ảnh (upload qua Supabase Storage)
-- Gửi file đính kèm
-- Preview ảnh trong chat
+**Database:**
+- Tạo bảng `polls` (id, conversation_id, creator_id, question, is_multiple_choice, created_at)
+- Tạo bảng `poll_options` (id, poll_id, option_text, position)
+- Tạo bảng `poll_votes` (id, poll_id, option_id, user_id, created_at) với unique constraint (poll_id, option_id, user_id)
+- RLS: chỉ members trong conversation mới xem/vote được
+- Enable realtime cho `poll_votes` để cập nhật live
 
-### Quản lý tin nhắn
-- Xóa / thu hồi tin nhắn (unsend)
-- Tìm kiếm tin nhắn trong conversation
+**Frontend:**
+- Component `CreatePollDialog` - form tạo poll với câu hỏi + tối đa 10 lựa chọn
+- Component `PollMessage` - hiển thị poll inline trong chat với thanh progress, số vote, animation khi vote
+- Gửi poll dưới dạng message type `poll` với content chứa poll_id
+- Nút tạo poll trong thanh công cụ nhập liệu (icon BarChart)
 
 ---
 
-## Phase 3: Group Chat
+## 2. Location Sharing
 
-### Tạo & quản lý nhóm
-- Tạo group với nhiều thành viên
-- Đặt tên nhóm + ảnh đại diện nhóm
-- Thêm / xóa thành viên
-- Rời nhóm
+Chia sẻ vị trí hiện tại hoặc live location trong chat.
 
-### Tính năng nhóm
-- Chat realtime trong group
-- Pin tin nhắn quan trọng
-- Admin role cơ bản (admin có thể xóa tin, kick member)
+**Frontend (không cần database mới):**
+- Sử dụng Browser Geolocation API để lấy vị trí
+- Gửi dưới dạng message type `location` với content là JSON `{lat, lng, name?}`
+- Component `LocationMessage` hiển thị bản đồ mini bằng OpenStreetMap embed (iframe) - miễn phí, không cần API key
+- Nút "Open in Maps" mở Google Maps/Apple Maps
+- Nút share location trong thanh công cụ (icon MapPin)
 
 ---
 
-## Phase 4: AI Angel Assistant 🤖
+## 3. Message Translation
 
-### Tích hợp AI trong chat
-- Nút "Hỏi Angel AI" trong mỗi conversation
-- Angel AI có thể: tóm tắt cuộc trò chuyện, dịch tin nhắn, gợi ý trả lời
-- Tone AI: Kind, Warm, 5D Light — luôn tích cực và nâng đỡ
-- Sử dụng Lovable AI gateway (Gemini) qua edge function
+Tự động dịch tin nhắn sang ngôn ngữ của người dùng.
 
----
+**Backend:**
+- Tạo edge function `translate-message` sử dụng Lovable AI (Gemini Flash) để dịch text
+- Input: text gốc + target language
+- Output: bản dịch
 
-## Phase 5: Polish & Trải nghiệm
-
-### Giao diện "Light Aura"
-- Theme sáng mặc định, tông pastel ấm (vàng nhạt, hồng nhạt, xanh mint)
-- Dark mode tùy chọn
-- Animations mượt khi gửi/nhận tin
-- Microcopy tích cực xuyên suốt:
-  - Lỗi kết nối → "FUN Chat đang kết nối lại… ✨"
-  - Không tìm thấy → "Chưa có kết quả — thử từ khóa khác nhé 💛"
-
-### Online / Offline status
-- Hiển thị trạng thái online của bạn bè
-- "Hoạt động lần cuối" indicator
-
-### Notifications
-- Toast notifications khi có tin nhắn mới
-- Unread count badge trên conversations
+**Frontend:**
+- Thêm nút "Dịch" (icon Languages) trên mỗi tin nhắn từ người khác
+- Khi nhấn, gọi edge function và hiển thị bản dịch bên dưới tin nhắn gốc với label ngôn ngữ (VD: "🇻🇳 Bản dịch")
+- Cache bản dịch trong state để không phải dịch lại
 
 ---
 
-## Cấu trúc Database (Supabase)
+## 4. Chat Themes / Backgrounds nâng cao
 
-- **profiles**: id, display_name, avatar_url, bio, created_at
-- **conversations**: id, type (direct/group), name, avatar_url, created_at
-- **conversation_members**: conversation_id, user_id, role, joined_at
-- **messages**: id, conversation_id, sender_id, content, type (text/image/file), reply_to, created_at, updated_at, is_deleted
-- **reactions**: message_id, user_id, emoji
-- **Storage bucket**: chat-media (ảnh, file đính kèm)
+Mở rộng hệ thống theme hiện tại với nhiều tùy chọn hơn.
 
----
-
-## Không nằm trong MVP này
-- Web3 / wallet / crypto payments (sẽ thêm sau)
-- Channels broadcast (Phase 2 trong roadmap lớn)
-- E2E encryption
-- On-chain proof
-- Earn mechanics
-- Mini workspace / CRM
-
-Các tính năng này được thiết kế sẵn trong kiến trúc để dễ dàng bổ sung sau.
+**Frontend (không cần database):**
+- Thêm thêm gradient backgrounds và pattern wallpapers vào SettingsDialog
+- Thêm tùy chọn đổi màu bubble chat (per-conversation color)
+- Thêm một số theme preset: "Ocean", "Forest", "Sunset", "Galaxy", "Minimal"
+- Lưu preferences vào localStorage (giống hệ thống hiện tại)
 
 ---
 
-## Kết quả mong đợi
-Một ứng dụng chat web hoạt động thật, đẹp, mượt, sẵn sàng cho early adopters dùng hàng ngày — với nền tảng vững chắc để mở rộng thêm Web3, AI, và economy features trong tương lai.
+## Thứ tự triển khai
+
+Do khối lượng lớn, đề xuất triển khai theo thứ tự ưu tiên:
+
+1. **Message Translation** - nhanh nhất, chỉ cần 1 edge function + nút UI
+2. **Polls / Bình chọn** - cần database + UI component mới
+3. **Location Sharing** - cần UI component mới, dùng API miễn phí
+4. **Chat Themes** - mở rộng hệ thống đã có
+
+---
+
+## Chi tiết kỹ thuật
+
+### Database migrations (cho Polls)
+
+```text
+Tables:
+  polls
+    - id: uuid PK
+    - conversation_id: uuid NOT NULL
+    - creator_id: uuid NOT NULL
+    - question: text NOT NULL
+    - is_multiple_choice: boolean DEFAULT false
+    - is_anonymous: boolean DEFAULT false
+    - created_at: timestamptz DEFAULT now()
+
+  poll_options
+    - id: uuid PK
+    - poll_id: uuid REFERENCES polls(id) ON DELETE CASCADE
+    - option_text: text NOT NULL
+    - position: integer DEFAULT 0
+
+  poll_votes
+    - id: uuid PK
+    - poll_id: uuid REFERENCES polls(id) ON DELETE CASCADE
+    - option_id: uuid REFERENCES poll_options(id) ON DELETE CASCADE
+    - user_id: uuid NOT NULL
+    - created_at: timestamptz DEFAULT now()
+    - UNIQUE(poll_id, option_id, user_id)
+
+RLS policies on all 3 tables:
+  SELECT/INSERT/DELETE for conversation members only
+```
+
+### Edge function: translate-message
+
+```text
+POST /translate-message
+Body: { text: string, targetLanguage: string }
+Response: { translatedText: string }
+Uses: Lovable AI (gemini-2.5-flash-lite) - no API key needed
+```
+
+### New UI components
+
+```text
+src/components/chat/CreatePollDialog.tsx   - Dialog tạo poll
+src/components/chat/PollMessage.tsx        - Render poll trong chat
+src/components/chat/LocationMessage.tsx    - Render location với map
+src/components/chat/TranslateButton.tsx    - Nút dịch trên message
+supabase/functions/translate-message/      - Edge function dịch
+```
+
+### Modified files
+
+```text
+src/components/chat/ChatArea.tsx     - Thêm location, poll buttons + render message types mới + translate button
+src/components/chat/SettingsDialog.tsx - Thêm theme presets mới
+```
 
