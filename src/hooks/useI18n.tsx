@@ -233,6 +233,11 @@ const translations: Record<Language, Record<string, string>> = {
     "wallpaper.bubbles": "Bong bóng",
     "wallpaper.warm": "Ấm áp",
     "wallpaper.ocean": "Đại dương",
+    "wallpaper.forest": "Rừng xanh",
+    "wallpaper.sunset": "Hoàng hôn",
+    "wallpaper.galaxy": "Ngân hà",
+    "wallpaper.minimal": "Tối giản",
+    "wallpaper.cherry": "Hoa anh đào",
 
     // Status
     "status.online": "Đang hoạt động",
@@ -452,6 +457,11 @@ const translations: Record<Language, Record<string, string>> = {
     "wallpaper.bubbles": "Bubbles",
     "wallpaper.warm": "Warm",
     "wallpaper.ocean": "Ocean",
+    "wallpaper.forest": "Forest",
+    "wallpaper.sunset": "Sunset",
+    "wallpaper.galaxy": "Galaxy",
+    "wallpaper.minimal": "Minimal",
+    "wallpaper.cherry": "Cherry",
     "status.online": "Active",
     "status.away": "Away",
     "status.busy": "Busy",
